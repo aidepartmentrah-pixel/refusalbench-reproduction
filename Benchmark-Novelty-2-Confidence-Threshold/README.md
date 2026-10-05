@@ -51,10 +51,25 @@ False refusal rate (answerable examples that were refused), missed refusal rate 
 ```python
 # NOVELTY 2 - confidence-threshold refusal gate (Qwen1.5-7B-Chat, T4). ONE cell: Runtime > Run all.
 # Safe to re-run after a disconnect: finished work is kept on Google Drive and skipped.
+# The first run downloads the model (about 15 GB, several minutes): progress is printed below.
 import os, subprocess, sys
 
 REPO = 'aidepartmentrah-pixel/refusalbench-reproduction'   # the repo that holds this code (change if you push elsewhere)
 OUT  = '/content/drive/MyDrive/refusalbench-results'        # results are saved here, on your Drive
+
+
+def run(cmd, **kw):
+    """Run a command and print its output LIVE (a plain subprocess.run shows nothing in a notebook)."""
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0,
+                         env={**os.environ, 'PYTHONUNBUFFERED': '1'}, **kw)
+    while True:
+        chunk = os.read(p.stdout.fileno(), 4096)
+        if not chunk:
+            break
+        print(chunk.decode('utf-8', 'replace'), end='', flush=True)
+    if p.wait() != 0:
+        raise RuntimeError(f'command failed (exit {p.returncode}): {cmd}')
+
 
 from google.colab import drive
 drive.mount('/content/drive')
@@ -67,20 +82,21 @@ except Exception:
     pass
 url = f'https://{token + "@" if token else ""}github.com/{REPO}.git'
 if not os.path.exists('/content/refusalbench-reproduction'):
-    subprocess.run(['git', 'clone', '-q', url, '/content/refusalbench-reproduction'], check=True)
+    run(['git', 'clone', '-q', url, '/content/refusalbench-reproduction'])
 os.chdir('/content/refusalbench-reproduction')
-subprocess.run(['git', 'pull', '-q'], check=True)
-subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements-colab.txt'], check=True)
+run(['git', 'pull', '-q'])
+print('installing packages ...')
+run([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements-colab.txt'])
 
 # GPU check
-print(subprocess.run(['nvidia-smi', '--query-gpu=name,memory.total', '--format=csv'], capture_output=True, text=True).stdout)
+run(['nvidia-smi', '--query-gpu=name,memory.total', '--format=csv'])
 
 # The experiment: scores all 1,600 examples (about 30-60 min on a T4, an estimate), then analyses. No judge, no API key.
 BASELINE = f'{OUT}/qwen15_7b_baseline'                       # optional: adds a reference line if the baseline run is there
 cmd = [sys.executable, 'Benchmark-Novelty-2-Confidence-Threshold/code/run_novelty2.py', '--out', OUT]
 if os.path.exists(f'{BASELINE}/target_outputs.jsonl'):
     cmd += ['--baseline-dir', BASELINE]
-subprocess.run(cmd, check=True)
+run(cmd)
 
 # Show the figures and make a zip to download (the Drive copy is already saved)
 from IPython.display import Image, display
@@ -90,7 +106,7 @@ for f in ('tradeoff.png', 's1_distribution.png'):
         display(Image(f'{R}/{f}'))
 try:
     from google.colab import files
-    subprocess.run(f'cd {OUT} && zip -qr /content/novelty2_results.zip novelty2_confidence_threshold -x "*/shards/*"', shell=True)
+    run(f'cd {OUT} && zip -qr /content/novelty2_results.zip novelty2_confidence_threshold -x "*/shards/*"', shell=True)
     files.download('/content/novelty2_results.zip')
 except Exception as e:
     print('download skipped:', e)
