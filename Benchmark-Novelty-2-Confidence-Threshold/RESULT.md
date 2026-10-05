@@ -1,7 +1,7 @@
 # Novelty 2: confidence-threshold refusal gate: RESULT
 
 **Verdict (the rule fixed before the run): SIGNAL BUT NO GAIN FROM THE THRESHOLD.**
-Qwen's refusal probability carries real information (S1 AUROC 0.73), but tuning a threshold on it does not significantly beat Qwen's default behavior in balanced accuracy. We **cannot claim that this beats the baseline.** The only variant that looks clearly better is the supervised hidden-state probe (S3), and the baseline comparison for it is not yet fair (see below).
+Qwen's refusal probability carries real information (S1 AUROC 0.73), but tuning a threshold on it does not significantly beat Qwen's default behavior in balanced accuracy. **Against the judged baseline (first 770 graded replies), no variant is clearly better: the best, the supervised hidden-state probe (S3), is +0.030 [-0.012, +0.067] in balanced accuracy, which includes zero, and the label-free S1 default is slightly worse.** We cannot claim that Novelty 2 beats the baseline. The comparison will be repeated when the baseline is fully judged (see "Is it better than the baseline?").
 
 Full auto-generated numbers: `results/RESULT_AUTO.md`. Figures: `results/tradeoff.png`, `results/s1_distribution.png`. Raw download: `novelty2_results.zip`.
 
@@ -41,18 +41,32 @@ Note on F1: tuned S1 beats default S1 in F1 by +0.127 (significant). We do **not
 
 ## Is it better than the baseline?
 
-Not provably, for three reasons:
+**Not clearly.** This is the fair comparison, run on the same examples against the baseline replies as judged by Gemini (script `code/compare_to_baseline.py`, full report in `results/comparison_all/COMPARISON.md`). **It uses the first 770 of 1,560 baseline replies graded** (day 1 of the free judge quota; the grading order is random, and the script found the sample representative). 509 refusal-required and 261 answerable examples, 99 source questions, 95% cluster-bootstrap intervals.
 
-1. **The baseline reference is a lower bound.** From the sampled baseline replies, counting only clean `REFUSE_*` codes (no judge): false refusal 0.155, missed refusal 0.569, which gives balanced accuracy about 0.638. Free-text refusals are counted as answers, so the true baseline is higher.
-2. **A judged reference is higher.** The format-only control (Novelty 1, judged by Gemini on 669 of its 800 examples) had false refusal 0.088 and missed refusal 0.534, balanced accuracy about 0.689. That is above S1 tuned (0.668) and S2 tuned (0.675), and below S3 (0.721). It is a different prompt and subset, so this is context, not a paired test.
-3. **S3 is supervised and the baseline is not.** The probe uses the benchmark's labels (cross-fitted, so no leakage, but it is still a trained component). A fair claim would compare it with a judged baseline on the same examples.
+| Rule | Balanced accuracy | Difference from baseline [95% CI] | Verdict | Uses labels? |
+|---|---|---|---|---|
+| **Baseline (judged replies)** | **0.688** [0.654, 0.722] | | | no |
+| S1 default threshold | 0.658 | -0.029 [-0.056, -0.002] | **WORSE** | no |
+| S1 tuned threshold | 0.671 | -0.016 [-0.045, +0.011] | no clear difference | yes |
+| S2 default (No > Yes) | 0.669 | -0.018 [-0.045, +0.008] | no clear difference | no |
+| S2 tuned threshold | 0.668 | -0.019 [-0.054, +0.016] | no clear difference | yes |
+| **S3 hidden-state probe** | **0.718** | **+0.030 [-0.012, +0.067]** | **no clear difference** | yes |
 
-**What can be said honestly:** a hidden-state probe on Qwen reaches about 0.72 balanced accuracy for answer-vs-refuse detection, roughly 3 to 8 points above the available baseline references, with the caveats above. A threshold on the refusal probability alone does not help.
+What this means:
+
+- **The earlier "0.64 to 0.72" was wrong.** The 0.64 came from counting only clean `REFUSE_*` codes (a lower bound). The judged baseline is **0.688**. The honest gap to the probe is about 3 points, and its interval includes zero.
+- **The label-free rules (S1 and S2 at their default thresholds) do not beat the baseline.** S1 default is slightly worse. Reading Qwen's refusal probability alone is not an improvement over letting Qwen answer.
+- **The probe (S3) is the only candidate.** It has the best point estimate and the lowest missed-refusal rate (0.289 against 0.460), at the price of more false refusals (0.276 against 0.165). It was trained on the benchmark's labels, which the baseline was not, so even a clear win would need that caveat.
+- **In the trade-off picture** (`results/comparison_all/baseline_vs_scorers.png`) the baseline's operating point lies on the S1 and S2 curves and just above the probe's curve: the baseline is already about as good as those scorers can do, and the probe is slightly better.
+- **It can still change.** Only half the baseline is graded. With all 1,560 the intervals narrow, so the probe's +0.030 could become a clear (but small) win or stay unclear. The second half of the judging (about 494 more calls) needs one more day of free quota or a second key. Then re-run:
+  `python Benchmark-Novelty-2-Confidence-Threshold/code/compare_to_baseline.py --baseline-dir Benchmark-Baseline-Reproduction/qwen15_7b_baseline --out Benchmark-Novelty-2-Confidence-Threshold/results/comparison_all`
+
+**What can be said honestly now:** a probe on Qwen's hidden state is a plausible but small improvement (about 3 points of balanced accuracy, not yet statistically clear) over the baseline's answer-or-refuse decisions; Qwen's refusal probability read through a threshold is not.
 
 ## What this means for the project story
 
 - Novelty 1 (writing a diagnosis first): clearly worse than the baseline (negative result).
-- Novelty 2 (reading Qwen's probabilities): the signal exists and it is usable by a probe, but a simple threshold gives no significant gain.
+- Novelty 2 (reading Qwen's probabilities): the signal exists, but against the judged baseline a simple threshold gives no gain, and the hidden-state probe is only a small, not yet statistically clear improvement (+0.030 balanced accuracy on the first half of the graded baseline).
 - Together: for a 7B model, prompting it to reason about the evidence fails, while the information about whether to refuse is already inside the model and can be read out.
 
 ## Limitations
@@ -60,8 +74,8 @@ Not provably, for three reasons:
 - S1 only sees openings that start with a refusal code; free-text refusals look like answers to it.
 - 4-bit model, one model, one benchmark, one seed.
 - Detection only: it does not say why to refuse, and it does not measure answer correctness (no judge).
-- No judged baseline on the same examples yet.
+- The baseline is only half graded (770 of 1,560); the comparison will be repeated when judging is complete.
 
-## Next step to settle "better than the baseline"
+## Next step
 
-Finish judging the baseline (about 517 Gemini calls remain, roughly one day of free quota, or a second key) and compare it with S1, S2 and S3 on the same examples with a paired bootstrap.
+Finish judging the baseline (about 494 Gemini calls remain: one more day of free quota, or a second key) and re-run the comparison command above. Then decide the final claim.

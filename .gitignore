@@ -6,3 +6,5 @@ __pycache__/
 # raw API outputs are kept locally; sample ID files in data/ are tracked
 results/*
 !results/.gitkeep
+# unzipped run folders (the zips are tracked)
+Benchmark-Baseline-Reproduction/qwen15_7b_baseline/
