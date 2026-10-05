@@ -1,6 +1,6 @@
 # Novelty 2: confidence-threshold refusal gate
 
-Status: **code built and tested, not yet run on the real model.** The result goes into `RESULT.md` after the Colab run.
+Status: **pilot run done** (verdict: signal but no gain from a threshold; the hidden-state probe is the best variant). Read `RESULT.md`. The fair comparison with a fully judged baseline is the next step (see below).
 
 ## The idea in plain words
 
@@ -117,6 +117,24 @@ except Exception as e:
 - Expected time: about 30 to 60 minutes on a T4 (*estimate, not measured yet*). The first lines of the log show seconds per example.
 - A pre-flight check runs first. If the cached scoring disagrees with a slow reference, the run falls back to "first token only" and says so in the log and in `RESULT_AUTO.md`.
 
+## Step 2: fair comparison with the judged baseline (run after the baseline is fully judged)
+
+The pilot compared against a lower-bound baseline (clean `REFUSE_*` codes only). The fair test needs the baseline's free-text replies judged by Gemini.
+
+1. **Finish judging the baseline on Colab** (`../Benchmark-Baseline-Reproduction/colab_baseline.ipynb`, with the `GEMINI_API_KEY` secret). It retries the 40 failed examples and judges the rest. Free quota is 500 requests per day, so it may take 1 to 2 days (a second key from another project finishes it faster). Re-running is safe.
+2. **Download the baseline run folder** from `MyDrive/refusalbench-results/qwen15_7b_baseline/` and unzip it, for example into `../Benchmark-Baseline-Reproduction/qwen15_7b_baseline/`. It must contain `target_outputs.jsonl` and `judged_outputs.jsonl`.
+3. **Run the comparison locally** (needs numpy, scipy, matplotlib; no GPU):
+
+```
+python Benchmark-Novelty-2-Confidence-Threshold/code/compare_to_baseline.py --baseline-dir Benchmark-Baseline-Reproduction/qwen15_7b_baseline
+```
+
+Add `--subset-file data/novelty_sample_ids.json` to compare on the 800 novelty examples only (useful if only those are judged). It writes `results/comparison/COMPARISON.md`, `comparison.json` and `baseline_vs_scorers.png`.
+
+The rule is fixed in advance: a rule is **BETTER** than the baseline when the 95% interval (cluster bootstrap over source questions) of its balanced-accuracy difference is entirely above 0, **WORSE** when entirely below 0, otherwise **NO CLEAR DIFFERENCE**. The report labels which rules use no labels (the default thresholds) and which were fitted on labels (tuned thresholds, the probe). It also warns if the judged examples are not a representative sample of the 1,600.
+
+Pipeline check only (not a result): using the judged format-only control as a stand-in on 669 examples, the probe was +0.049 [0.005, 0.095] and the other rules showed no clear difference. The real answer needs the real baseline.
+
 ## What you get (in `MyDrive/refusalbench-results/novelty2_confidence_threshold/`)
 
 | File | What it is |
@@ -149,6 +167,11 @@ After the run, put the downloaded zip in this folder and write the final `RESULT
 | `configs/novelty2.yaml` | All settings |
 | `code/selftest_novelty2.py` | Unit tests: metrics checked by hand, no leakage, the success rule |
 | `code/selftest_model.py` | Tests the scorer on a tiny random Qwen2 with the real tokenizer (needs torch) |
+| `code/compare_to_baseline.py` | The fair comparison with the judged baseline (step 2) |
+| `code/selftest_compare.py` | Tests for the comparison (verdicts on synthetic cases with known answers) |
+| `results/` | The pilot run's report, figures and scores (`RESULT_AUTO.md`, `tradeoff.png`, `scores.csv`, ...) |
+| `novelty2_results.zip` | The raw download from Colab |
+| `PITCH.md` | One-paragraph pitch for the professor |
 | `colab_novelty2.ipynb` | The notebook for Colab |
 | `RESULT.md` | The final write-up (after the run) |
 
