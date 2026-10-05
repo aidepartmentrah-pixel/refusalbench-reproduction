@@ -19,7 +19,7 @@ Owners: **[C]** Claude, **[Y]** you, **[B]** both together.
 |S9|Novelty design (category-first)|S8|You + Claude|—|Proposed in Obsidian note 9, pitch to your professor (E1–E4)|NOT STARTED — proposed, conditional on baseline failure analysis|
 |S10|Novelty runs: baseline vs format-only vs category-first on the stratified 800|S9|Windows (code) + Colab T4 (runs)|`tests/selftest_conditions.py` passes; fake end-to-end of all three conditions on the real 800 subset; paired bootstrap runs|Real 800-example runs, paired bootstrap over source questions|**CODE BUILT + TESTED locally** — not pushed yet (so a Colab re-run of the baseline cannot pick it up); real runs wait for the gate, approval and prompt freeze|
 |S10b|Novelty 1 verdict (Classify-then-Decide)|S10|Windows|Paired cluster bootstrap on 776 common examples, parse-only scoring|Raw replies read by eye: Qwen writes `EVIDENCE_STATE: CLEAR` on 95%|**DONE: NEGATIVE RESULT.** Code archived in `Benchmark-Novelty-1-Classify-then-Decide/`|
-|S12|Novelty 2: confidence-threshold refusal gate|S10b|Windows (code) + Colab T4 (one run, about 20-40 min *estimate*)|Fake end-to-end run, metric and bootstrap tests, tokenizer check|Real 1,600 forward passes (dev pool to tune, 800 to test), judge-free|**CODE BUILT AND TESTED, waiting for the one Colab run** (see Phase H)|
+|S12|Novelty 2: confidence-threshold refusal gate|S10b|Windows (code) + Colab T4 (one run, about 20-40 min *estimate*)|Fake end-to-end run, metric and bootstrap tests, tokenizer check|Real 1,600 forward passes (dev pool to tune, 800 to test), judge-free|**RUN DONE: signal but no significant gain from the threshold; probe S3 best** (see Phase H)|
 |S11|Course deliverables|S7, S10, S12|Windows|Both `baseline/` and `extension/` run|Report, slides (cover + 6 + references), 12-minute defense|NOT STARTED|
 
 ---
@@ -136,8 +136,9 @@ Idea (note 9, idea 5, with 2 and 6 as ablations): do not read what Qwen *writes*
 - [x] H3 [C] `code/run_novelty2.py`: resumable (shards on Drive), dev pool + novelty 800, then analysis; `configs/novelty2.yaml`
 - [x] H4 [C] Tests: metric values checked by hand, a fold's threshold never depends on its own labels, tokenizer first-token check, fake end-to-end run
 - [x] H5 [C] `colab_novelty2.ipynb`: ONE code cell (also pasted in the folder `README.md`)
-- [ ] H6 [B] **Commit + push the code (needs your OK), then run the cell on a T4.** Note: the cross-fitting over source questions replaces the plain dev-pool split, because all 100 source questions appear in both pools (a split would leak)
-- [ ] H7 [B] Read `RESULT_AUTO.md` together, write the final `RESULT.md` (success or failure, both are reportable)
+- [x] H6 [B] **Committed, pushed and run on a Colab T4 (2026-10-05).** Note: the cross-fitting over source questions replaces the plain dev-pool split, because all 100 source questions appear in both pools (a split would leak)
+- [x] H7 [B] `RESULT.md` written. **Verdict: SIGNAL BUT NO GAIN FROM THE THRESHOLD** (S1 AUROC 0.726 [0.699, 0.752]; tuned vs default balanced accuracy +0.015 [-0.008, +0.036]). Best variant is the supervised hidden-state probe S3 (balanced accuracy 0.721 [0.691, 0.749]). Cannot claim to beat the baseline until the baseline is fully judged.
+- [ ] H8 [B] Fair comparison with a judged baseline on the same examples (needs about 517 more Gemini calls) and the decision on what to build next
 
 ## Phase F: Course deliverables
 

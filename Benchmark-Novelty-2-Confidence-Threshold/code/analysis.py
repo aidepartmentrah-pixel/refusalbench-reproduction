@@ -301,11 +301,16 @@ def plot_s1_distribution(path, y, s1, thresholds):
     top = ax.get_ylim()[1]
     ax.set_ylim(0, top * 1.18)
     ax.axvline(0, color=MUTED, linewidth=1.2, linestyle="--")
-    ax.text(0, top * 1.14, "default (p = 0.5) ", color=MUTED, fontsize=8, va="top", ha="right")
+    marks = [(0.0, "default (p = 0.5)", MUTED)]
     if thresholds:
         t = float(np.median(thresholds))
         ax.axvline(t, color=INK, linewidth=1.5)
-        ax.text(t, top * 1.14, " tuned (median of folds)", color=INK, fontsize=8, va="top", ha="left")
+        marks.append((t, "tuned (median of folds)", INK))
+    marks.sort()  # the left line is labelled to its left, the right line to its right, so labels never overlap
+    for i, (x, label, color) in enumerate(marks):
+        left = i == 0 and len(marks) > 1
+        ax.text(x, top * 1.14, (label + " ") if left else (" " + label), color=color, fontsize=8, va="top",
+                ha="right" if left else "left")
     ax.set_xlim(lo, hi)
     ax.set_xlabel("S1 score: log-odds that Qwen opens with a refusal code", color=INK, fontsize=10)
     ax.set_ylabel("examples", color=INK, fontsize=10)
