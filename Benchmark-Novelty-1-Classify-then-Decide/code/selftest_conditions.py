@@ -1,11 +1,12 @@
-"""Tests for the novelty conditions. Run: python tests/selftest_conditions.py   (no network, no GPU, no API)"""
+"""Tests for the novelty conditions. Run: python Benchmark-Novelty-1-Classify-then-Decide/code/selftest_conditions.py   (no network, no GPU, no API)"""
 
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.conditions import STATE_TO_CODE, build_prompt_for, extract_effective  # noqa: E402
+from conditions import STATE_TO_CODE, build_prompt_for, extract_effective  # noqa: E402
 from src.prompt_builder import build_prompt  # noqa: E402
 from src.schema_adapter import REFUSAL_CODES  # noqa: E402
 

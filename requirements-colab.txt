@@ -5,3 +5,7 @@ datasets
 python-dotenv
 google-genai
 pyyaml
+
+scikit-learn
+scipy
+matplotlib

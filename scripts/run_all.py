@@ -55,7 +55,8 @@ def load_target_checked(target_cfg, log):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default="configs/qwen15_7b_baseline.yaml")
+    ap.add_argument("--config", default="Benchmark-Baseline-Reproduction/configs/qwen15_7b_baseline.yaml",
+                    help="every experiment keeps its config in its own folder: Benchmark-<name>/configs/*.yaml")
     ap.add_argument("--out", default="results", help="base folder; the run lives in <out>/<run_name>")
     ap.add_argument("--fake", action="store_true", help="TEST ONLY: fake target and judge, no GPU, no API")
     ap.add_argument("--dev-subset", type=int, default=0, help="TEST ONLY: use a small stratified subset")
@@ -71,6 +72,10 @@ def main():
         cfg["target"]["provider"], cfg["judge"]["provider"] = "fake", "fake"
         cfg["run_name"] += "_FAKE_TEST"
     condition = cfg["target"].get("condition", "baseline")
+    if cfg.get("experiment_dir"):
+        from src.conditions import load_experiment
+
+        load_experiment(cfg["experiment_dir"], os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     subset_file = args.subset_file or cfg.get("subset_file")
     run_dir = os.path.join(args.out, cfg["run_name"])
     os.makedirs(run_dir, exist_ok=True)

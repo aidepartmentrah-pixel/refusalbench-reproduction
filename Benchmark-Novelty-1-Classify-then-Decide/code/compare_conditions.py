@@ -1,7 +1,7 @@
 """Compare baseline vs format-only vs category-first on the same examples.
 
 Usage:
-  python scripts/compare_conditions.py --baseline-dir <run> --format-only-dir <run> --category-first-dir <run> --out <folder>
+  python Benchmark-Novelty-1-Classify-then-Decide/code/compare_conditions.py --baseline-dir <run> --format-only-dir <run> --category-first-dir <run> --out <folder>
 The baseline run covers all 1,600; it is restricted to the examples the other conditions share.
 """
 
@@ -9,9 +9,10 @@ import argparse
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.compare import paired_bootstrap, render_report  # noqa: E402
+from compare import paired_bootstrap, render_report  # noqa: E402
 from src.dataset_loader import load_refusalbench_nq  # noqa: E402
 from src.metrics import join_rows  # noqa: E402
 from src.runner import read_jsonl  # noqa: E402

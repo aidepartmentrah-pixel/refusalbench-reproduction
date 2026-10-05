@@ -18,7 +18,9 @@ Owners: **[C]** Claude, **[Y]** you, **[B]** both together.
 |S8|Review gate|S7|You + Claude|—|We read the results and failure patterns together|NOT STARTED|
 |S9|Novelty design (category-first)|S8|You + Claude|—|Proposed in Obsidian note 9, pitch to your professor (E1–E4)|NOT STARTED — proposed, conditional on baseline failure analysis|
 |S10|Novelty runs: baseline vs format-only vs category-first on the stratified 800|S9|Windows (code) + Colab T4 (runs)|`tests/selftest_conditions.py` passes; fake end-to-end of all three conditions on the real 800 subset; paired bootstrap runs|Real 800-example runs, paired bootstrap over source questions|**CODE BUILT + TESTED locally** — not pushed yet (so a Colab re-run of the baseline cannot pick it up); real runs wait for the gate, approval and prompt freeze|
-|S11|Course deliverables|S7, S10|Windows|Both `baseline/` and `extension/` run|Report, slides (cover + 6 + references), 12-minute defense|NOT STARTED|
+|S10b|Novelty 1 verdict (Classify-then-Decide)|S10|Windows|Paired cluster bootstrap on 776 common examples, parse-only scoring|Raw replies read by eye: Qwen writes `EVIDENCE_STATE: CLEAR` on 95%|**DONE: NEGATIVE RESULT.** Code archived in `Benchmark-Novelty-1-Classify-then-Decide/`|
+|S12|Novelty 2: confidence-threshold refusal gate|S10b|Windows (code) + Colab T4 (one run, about 20-40 min *estimate*)|Fake end-to-end run, metric and bootstrap tests, tokenizer check|Real 1,600 forward passes (dev pool to tune, 800 to test), judge-free|**CODE BUILT AND TESTED, waiting for the one Colab run** (see Phase H)|
+|S11|Course deliverables|S7, S10, S12|Windows|Both `baseline/` and `extension/` run|Report, slides (cover + 6 + references), 12-minute defense|NOT STARTED|
 
 ---
 
@@ -55,7 +57,7 @@ Owners: **[C]** Claude, **[Y]** you, **[B]** both together.
 - [x] B6 [C] `scripts/run_all.py` (the one-click entry point, replaces separate run scripts), `--fake` and `--dev-subset` for tests only
 - [x] B7 [C] Local test with a fake model: crash then resume gives 60 unique IDs, no gaps, no duplicates
 - [x] B8 [C] `requirements-colab.txt` (lower bounds only, exact versions get recorded in each run's report)
-- [x] B9 [C] `notebooks/colab_runner.ipynb`: Drive, clone, install, secrets, GPU check, run everything, show report, download zip
+- [x] B9 [C] `Benchmark-Baseline-Reproduction/colab_baseline.ipynb` (moved from `notebooks/`): Drive, clone, install, secrets, GPU check, run everything, show report, download zip
 - [x] B10 [C] Committed and pushed to `origin/main` (commit `d2164cd`, no secrets, `.env` and `.venv` ignored). **The repo is PRIVATE**, so Colab needs either the repo made public or a `GITHUB_TOKEN` secret (read-only token for this repo). I did not change the visibility without your say-so
 
 ## Phase C: Parser, judge pipeline, metrics (code, tested locally)
@@ -85,7 +87,7 @@ Everything below runs by itself when you click Run all, except D5 and D12.
 - [ ] D11 [auto] `reproduction_report.md` generated
 - [ ] D12 [B] **GATE: review the baseline results together. No novelty work until this is done**
 
-**Baseline data check (from `Benchmark-Reproduction-Data/qwen15_7b_baseline.zip`, first Colab run):** generation is **1,560 of 1,600 done**, valid and duplicate-free (config matches: Qwen1.5-7B-Chat, 4-bit, temperature 1.0, top_p 1.0, max 256 tokens, prompt hash `c0008c7504b3`). **40 examples failed with CUDA out-of-memory** in batches of 8 and were never retried; the run stopped at the missing-IDs check before judging. They are ordinary examples (longest 1,852 characters, the dataset maximum is 2,012 and one of those succeeded), so the one-by-one retry in the pushed fix should recover them. No judging, metrics or report yet. Reply format: 568 clean `REFUSE_*` (36%), 991 free text with no code (64%), 1 multi-code, 0 empty, so the judge will handle about 1,000 replies, more than the earlier 804 estimate. **Action: re-run Cell 1 on the first account** (pulls the fix, retries the 40, judges, computes metrics, writes the report). Do not redo the run.
+**Baseline data check (from `Benchmark-Baseline-Reproduction/qwen15_7b_baseline.zip`, first Colab run):** generation is **1,560 of 1,600 done**, valid and duplicate-free (config matches: Qwen1.5-7B-Chat, 4-bit, temperature 1.0, top_p 1.0, max 256 tokens, prompt hash `c0008c7504b3`). **40 examples failed with CUDA out-of-memory** in batches of 8 and were never retried; the run stopped at the missing-IDs check before judging. They are ordinary examples (longest 1,852 characters, the dataset maximum is 2,012 and one of those succeeded), so the one-by-one retry in the pushed fix should recover them. No judging, metrics or report yet. Reply format: 568 clean `REFUSE_*` (36%), 991 free text with no code (64%), 1 multi-code, 0 empty, so the judge will handle about 1,000 replies, more than the earlier 804 estimate. **Action: re-run Cell 1 on the first account** (pulls the fix, retries the 40, judges, computes metrics, writes the report). Do not redo the run.
 
 **Judge quota finding (2026-10-04 night):** the free Gemini tier allows **500 requests per day per project per model** (`gemini-3.5-flash-lite`, error 429 `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, reset about 5 hours after the error, so around 03:00 local). The local baseline judging used 495 calls and stopped cleanly at **730 of 1,560 rows**. **Those 730 are not a random sample** (the old order was by example ID: all 400 `claude`, 274 `deepseek`, only 31 `gpt`, 25 `nova`), so the metrics in that report (answer 0.717, refusal 0.099) **must not be read or compared with the paper**. The report now carries an INCOMPLETE banner. Judge calls still needed for the baseline: **517** (a bit more than one day's quota). Estimated total still needed: baseline 517 + format-only about 600 + category-first about 300. Quota is per project, so a key from another project has its own 500 per day. Code fixes (not yet pushed when written): judging now runs in a seeded random order, a daily-quota error stops immediately, and the report shows the INCOMPLETE banner. Options to finish faster: wait for the daily resets (about 2 to 3 days), use a second key from a different project (the Colab account may already have one), or enable billing on the project (cost for about 2,000 calls would be a few cents, your decision). Mixing different judge models inside one condition is blocked by the code on purpose.
 
@@ -106,13 +108,36 @@ The code is built (E5 to E11, E12b, E15). Still open: E12 prompt pilots on the d
 - [x] E10 [C] Judging uses the extracted reply (code scored by parser, answer text to the judge), unchanged otherwise **Done:** Judging scores the extracted reply and records `effective_reply`, `evidence_state`, `flags` for non-baseline runs.
 - [x] E11 [C] Tests: `FINAL` and `EVIDENCE_STATE` parsing, malformed output, state-vs-final conflicts, fake end-to-end for both conditions **Done:** `tests/selftest_conditions.py` passes (it caught a markdown-bold parsing bug in `FINAL:`, fixed). Fake runs of all three conditions on the real 800 subset worked, crash-safe.
 - [ ] E12 [C] Pilot on the **dev pool (the other 800)**, 30 examples per prompt, at most 3 prompt revisions, each recorded. Then **freeze the prompts** before touching the 800
-- [x] E12b [C] `notebooks/colab_novelty.ipynb` built: setup, format-only run, category-first run, comparison (all resumable). Do not run before the gate, approval and prompt freeze. **Update:** you chose to start the novelty sweep early on a second T4 (other Google account). Code pushed in `dcc878d` (also adds the out-of-memory fallback and catch-up passes). The prompts were not piloted on the real Qwen, so the first 10 sample replies of each condition must be checked by eye; results are provisional until the gate, the professor's approval and a prompt review.
+- [x] E12b [C] `Benchmark-Novelty-1-Classify-then-Decide/colab_novelty1.ipynb` (moved) built: setup, format-only run, category-first run, comparison (all resumable). Do not run before the gate, approval and prompt freeze. **Update:** you chose to start the novelty sweep early on a second T4 (other Google account). Code pushed in `dcc878d` (also adds the out-of-memory fallback and catch-up passes). The prompts were not piloted on the real Qwen, so the first 10 sample replies of each condition must be checked by eye; results are provisional until the gate, the professor's approval and a prompt review.
 - [ ] E13 [Y] Run the format-only condition on the 800 on Colab (about 1.5 h on the T4, resumable)
 - [ ] E14 [Y] Run the category-first condition on the 800 (about 1.5 to 2 h)
 - [x] E15 [C] `scripts/compare_conditions.py` + `src/compare.py`: baseline vs format-only vs category-first on identical examples, paired cluster bootstrap over the ~100 source questions, 95% intervals. **Done:** tested on fake runs (numbers meaningless, intervals realistically wide).
 - [ ] E16 [C] `novelty_report.md`: main comparison is **category-first vs format-only control**, plus limitations
 - [ ] E17 [B] Review the novelty results together
 - [ ] E18 [optional, C] Probability-based answer/refuse threshold curve (note 9, section 16), only if time remains
+
+## Phase N1: Novelty 1 archived (Classify-then-Decide, category-first): NEGATIVE RESULT
+
+Result and numbers: `Benchmark-Novelty-1-Classify-then-Decide/RESULT.md`. Qwen answered `EVIDENCE_STATE: CLEAR` on 95% of examples, so it almost never refused (correct category 0.0% vs 3.3% format-only vs 6.8% baseline; all paired-bootstrap intervals exclude zero).
+Rule from now on: **every experiment lives in its own folder** (`Benchmark-Novelty-N-<name>/` with `README.md`, `code/`, `configs/`, notebook, `RESULT.md`). Shared infrastructure (`src/`, `data/`, baseline) stays at the top.
+
+- [x] N1.1 [C] Run the comparison on the three conditions and write `RESULT.md` (done, in the folder)
+- [x] N1.2 [C] Move the Novelty 1 code into the folder (`code/conditions.py`, `code/compare.py`, `code/compare_conditions.py`, `code/selftest_conditions.py`, `configs/`, notebook) and keep the baseline pipeline working through a small plug-in hook (`experiment_dir` in the config) **Done:** `src/conditions.py` is now baseline-only plus the loader; Novelty 1 lives in its folder.
+- [x] N1.3 [C] Re-run all self-tests and a fake baseline + fake novelty-1 run to prove nothing broke **Done:** all pass; fake baseline, format-only and category-first runs work from the new paths.
+- [x] N1.4 [C] Baseline folder tidied the same way: `Benchmark-Reproduction-Data/` renamed `Benchmark-Baseline-Reproduction/`, now holds `colab_baseline.ipynb`, `configs/qwen15_7b_baseline.yaml`, `README.md` (how to run on Colab) and the two result zips. `scripts/run_all.py` default config path updated.
+
+## Phase H: Novelty 2: confidence-threshold refusal gate (folder `Benchmark-Novelty-2-Confidence-Threshold/`)
+
+Idea (note 9, idea 5, with 2 and 6 as ablations): do not read what Qwen *writes*. Read how likely Qwen is to start a refusal code, and decide answer vs refuse with a threshold tuned on other source questions (5-fold cross-fitting over all 1,600 examples, also reported on the 800 novelty subset). Judge-free, so the Gemini quota does not matter. Targets refusal **detection** (answer vs refuse), not category.
+
+- [x] H0 [C] Design written down in the folder `README.md`: hypotheses, three scorers (S1 refuse-code probability = the novelty, S2 yes/no sufficiency probability, S3 hidden-state linear probe), protocol, metrics, what would count as failure
+- [x] H1 [C] `code/scorer.py`: one forward pass per example (no generation), probability of the refusal first-tokens, last-token hidden states, left-padding fix, out-of-memory halving, fake scorer for tests **Done:** tested on a tiny random Qwen2 with the real Qwen tokenizer (left padding invariant, cached scoring equals the cache-free reference to 1e-6, out-of-memory halving).
+- [x] H2 [C] `code/analysis.py`: AUROC and AUPRC, false-refusal vs missed-refusal curve, thresholds and probe cross-fitted over source questions, linear probe, paired cluster bootstrap over source questions, plots, auto-written `RESULT_AUTO.md`
+- [x] H3 [C] `code/run_novelty2.py`: resumable (shards on Drive), dev pool + novelty 800, then analysis; `configs/novelty2.yaml`
+- [x] H4 [C] Tests: metric values checked by hand, a fold's threshold never depends on its own labels, tokenizer first-token check, fake end-to-end run
+- [x] H5 [C] `colab_novelty2.ipynb`: ONE code cell (also pasted in the folder `README.md`)
+- [ ] H6 [B] **Commit + push the code (needs your OK), then run the cell on a T4.** Note: the cross-fitting over source questions replaces the plain dev-pool split, because all 100 source questions appear in both pools (a split would leak)
+- [ ] H7 [B] Read `RESULT_AUTO.md` together, write the final `RESULT.md` (success or failure, both are reportable)
 
 ## Phase F: Course deliverables
 

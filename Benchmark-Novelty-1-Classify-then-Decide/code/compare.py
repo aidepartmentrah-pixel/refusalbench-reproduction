@@ -6,7 +6,7 @@ Examples that come from the same source question are correlated, so we resample 
 
 import numpy as np
 
-from .metrics import compute_metrics
+from src.metrics import compute_metrics
 
 METRICS = ["answer_accuracy", "refusal_accuracy", "false_refusal_rate", "missed_refusal_rate",
            "refusal_detection_f1", "calibrated_refusal_score"]
