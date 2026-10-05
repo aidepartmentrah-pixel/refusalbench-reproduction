@@ -21,6 +21,6 @@ Reply format on all 1,560: 528 clean `REFUSE_*` codes (34%), 991 free text with 
 
 ## Still to do
 
-- Grade the remaining **790 replies** (about 494 Gemini calls, one more day of free quota or a second key). Use `colab_baseline_judge.ipynb` (steps in `README.md`).
+- Grade the remaining **790 replies** (534 Gemini calls, one more day of free quota or a second key). Use `colab_baseline_judge.ipynb` (steps in `README.md`).
 - Hand-check about 30 graded replies (`handcheck_sheet.csv`) to validate the substitute judge, and report the agreement rate.
 - Final comparison with the paper once grading is complete.
