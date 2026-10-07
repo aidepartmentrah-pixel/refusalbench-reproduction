@@ -49,3 +49,9 @@ Accepted (all 16 points; the one about the probe is applied with different wordi
 Added by us after reading the review: how the bootstrap is computed (held-out predictions are resampled, the fitting is not repeated) and that a unit test checks the no-leakage property.
 
 Not applied: GPT's suggested phrase "upper-bound-style readout" for the probe, because a supervised probe is not an upper bound; we call it a diagnostic. Not done yet (needs you): the 30-reply judge hand check, and the final numbers when the baseline is fully graded.
+
+## Round 3 (second GPT review)
+
+Applied: Fig. 1 label now says "one forward pass per prompt"; "anchors it on clear" replaced by a non-causal wording; the Conclusion and the Discussion no longer say the probe is "slightly better" or that the scores are "more separable" than the generated decisions (they now say a small positive point estimate with no clear advantage, and that the scores contain predictive information); the related-work contrast is limited to the approaches that fine-tune; the Table IV caption says only AUROC has intervals; the bootstrap count and seed (2,000, seed 0) are stated; contribution 3 names the gap between decodability and deployable gain.
+
+Found by that review and fixed in the code: Table I and Table V disagreed (baseline BA 0.690 vs 0.688) because the judge mistyped two refusal codes (for example `REFUSE_INFO_MISSING_IN CONTEXT`). `src/metrics.py` now maps any mistyped REFUSE code to the closest valid code (the stored judgements are untouched), and the comparison script uses the same function. Corrected numbers: baseline BA 0.690 [0.656, 0.724], detection F1 0.668; probe difference +0.028 [-0.014, +0.065]; S1 default -0.031 [-0.057, -0.005]. Verdicts are unchanged. The second review also flagged stray emails in the text; that was an older PDF, already fixed in the zip from commit 358d9bb.

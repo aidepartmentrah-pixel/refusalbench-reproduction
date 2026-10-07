@@ -50,4 +50,12 @@ assert m["calibrated_refusal_score"] == 0.5 * 0.5 + 0.5 * 0.5
 assert abs(m["refusal_detection_precision"] - 3 / 4) < 1e-9 and abs(m["refusal_detection_recall"] - 3 / 4) < 1e-9
 assert abs(m["refusal_detection_f1"] - 0.75) < 1e-9
 
+from src.metrics import normalize_classification  # noqa: E402
+
+assert normalize_classification("REFUSE_INFO_MISSING_IN CONTEXT") == "REFUSE_INFO_MISSING_IN_CONTEXT"
+assert normalize_classification("REFUSE_INFO_MISSING_INCONTEXT") == "REFUSE_INFO_MISSING_IN_CONTEXT"
+assert normalize_classification("REFUSE_SOMETHING_ELSE_ENTIRELY") == "REFUSE_OTHER"
+assert normalize_classification("answer_attempt") == "answer_attempt" and normalize_classification("EMPTY") == "EMPTY"
+assert normalize_classification("REFUSE_AMBIGUOUS_QUERY") == "REFUSE_AMBIGUOUS_QUERY"
+
 print("selftest: all assertions passed")

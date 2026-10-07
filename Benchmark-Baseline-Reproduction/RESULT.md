@@ -12,7 +12,7 @@ Data: `qwen15_7b_baseline_judged_day1.zip` in this folder (unzipped locally as `
 | Refusal accuracy (exact category) | 0.114 | about 0.05 (read from a small plot) | Low in both: Qwen-7B almost never names the right reason |
 | False refusal rate | 0.165 | not extracted | |
 | Missed refusal rate | 0.456 | not extracted | |
-| Refusal detection F1 | 0.665 | not extracted | |
+| Refusal detection F1 | 0.668 | not extracted | |
 | Calibrated refusal score | 0.402 | not extracted | |
 
 Reading: the baseline reproduces the paper's qualitative finding (Qwen-7B almost never gives the correct refusal reason, refusal accuracy near the floor, and it misses many refusals) but the exact numbers differ from the paper because of the documented deviations (judge, quantization, inference stack, sampling at temperature 1.0). By type, the baseline misses most refusals for **Ambiguity (0.74) and Contradiction (0.71)**, and over-refuses **False Premise** (false refusal 0.33).

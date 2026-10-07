@@ -23,4 +23,4 @@ How we differ: we apply the probe and threshold idea to grounded selective refus
 
 - Baseline: reproduced for Qwen1.5-7B-Chat; replies generated for 1,560 of 1,600 examples; 770 of them graded so far (random sample), the rest in progress (free Gemini quota).
 - Novelty 1: done, negative result.
-- Novelty 2: pilot run done on all 1,600 examples. First fair comparison against the judged baseline (770 graded replies): the probe is +0.030 [-0.012, +0.067] in balanced accuracy, no clear difference yet; the label-free threshold rules do not beat the baseline. The comparison will be repeated when grading is complete. We do not claim an improvement before that.
+- Novelty 2: pilot run done on all 1,600 examples. First fair comparison against the judged baseline (770 graded replies): the probe is +0.028 [-0.014, +0.065] in balanced accuracy, no clear difference yet; the label-free threshold rules do not beat the baseline. The comparison will be repeated when grading is complete. We do not claim an improvement before that.

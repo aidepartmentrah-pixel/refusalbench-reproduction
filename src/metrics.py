@@ -7,7 +7,19 @@ a REFUSE_* code, or "EMPTY". Examples with no judged row are reported as unjudge
 import csv
 from collections import Counter, defaultdict
 
+import difflib
+
 from .schema_adapter import ANSWER_LABEL, REFUSAL_CODES
+
+
+def normalize_classification(c):
+    """The judge sometimes mistypes a refusal code (for example `REFUSE_INFO_MISSING_IN CONTEXT`). Any string that
+    starts with REFUSE is a refusal: map it to the closest valid code, or REFUSE_OTHER when nothing is close.
+    `answer_attempt`, `EMPTY` and valid codes are returned unchanged. The stored judgements are never modified."""
+    if not isinstance(c, str) or c in REFUSAL_CODES or not c.startswith("REFUSE"):
+        return c
+    close = difflib.get_close_matches(c, REFUSAL_CODES, n=1, cutoff=0.8)
+    return close[0] if close else "REFUSE_OTHER"
 
 
 def join_rows(target_rows, judged_rows):
@@ -22,7 +34,7 @@ def join_rows(target_rows, judged_rows):
             "id": t["example_id"], "expected": t["expected_behavior"],
             "answerable": t["expected_behavior"] == ANSWER_LABEL,
             "type": t["uncertainty_type"], "intensity": t["intensity"],
-            "pred": jr["classification"], "score": jr.get("quality_score"),
+            "pred": normalize_classification(jr["classification"]), "score": jr.get("quality_score"),
         })
     return rows, unjudged
 

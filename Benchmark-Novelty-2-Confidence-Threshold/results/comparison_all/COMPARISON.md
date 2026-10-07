@@ -6,7 +6,7 @@
 
 | Rule | False refusal | Missed refusal | Balanced accuracy | Detection F1 | Uses labels? |
 |---|---|---|---|---|---|
-| **Baseline (judged replies)** | 0.165 [0.110, 0.222] | 0.460 [0.403, 0.519] | 0.688 [0.654, 0.722] | 0.665 [0.617, 0.710] | no |
+| **Baseline (judged replies)** | 0.165 [0.110, 0.222] | 0.456 [0.399, 0.515] | 0.690 [0.656, 0.724] | 0.668 [0.620, 0.712] | no |
 | S1 default threshold (no labels used) | 0.103 [0.059, 0.153] | 0.580 [0.527, 0.635] | 0.658 [0.629, 0.687] | 0.571 [0.518, 0.618] | no |
 | S1 tuned threshold | 0.261 [0.193, 0.335] | 0.397 [0.339, 0.455] | 0.671 [0.635, 0.705] | 0.695 [0.651, 0.733] | yes (cross-fitted) |
 | S2 default (No > Yes, no labels used) | 0.115 [0.066, 0.168] | 0.546 [0.491, 0.601] | 0.669 [0.641, 0.699] | 0.600 [0.551, 0.646] | no |
@@ -17,11 +17,11 @@
 
 | Rule | Difference [95% CI] | Verdict |
 |---|---|---|
-| S1 default threshold (no labels used) | -0.029 [-0.056, -0.002] | **WORSE** |
-| S1 tuned threshold | -0.016 [-0.045, 0.011] | **NO CLEAR DIFFERENCE** |
-| S2 default (No > Yes, no labels used) | -0.018 [-0.045, 0.008] | **NO CLEAR DIFFERENCE** |
-| S2 tuned threshold | -0.019 [-0.054, 0.016] | **NO CLEAR DIFFERENCE** |
-| S3 hidden-state probe | 0.030 [-0.012, 0.067] | **NO CLEAR DIFFERENCE** |
+| S1 default threshold (no labels used) | -0.031 [-0.057, -0.005] | **WORSE** |
+| S1 tuned threshold | -0.018 [-0.047, 0.009] | **NO CLEAR DIFFERENCE** |
+| S2 default (No > Yes, no labels used) | -0.020 [-0.047, 0.007] | **NO CLEAR DIFFERENCE** |
+| S2 tuned threshold | -0.021 [-0.056, 0.014] | **NO CLEAR DIFFERENCE** |
+| S3 hidden-state probe | 0.028 [-0.014, 0.065] | **NO CLEAR DIFFERENCE** |
 
 BETTER = the whole interval is above 0. WORSE = the whole interval is below 0. NO CLEAR DIFFERENCE = the interval includes 0.
 
@@ -29,11 +29,11 @@ BETTER = the whole interval is above 0. WORSE = the whole interval is below 0. N
 
 | Rule | False refusal | Missed refusal | Detection F1 |
 |---|---|---|---|
-| S1 default threshold (no labels used) | -0.061 [-0.101, -0.025] | 0.120 [0.081, 0.158] | -0.094 [-0.130, -0.060] |
-| S1 tuned threshold | 0.096 [0.053, 0.142] | -0.063 [-0.104, -0.024] | 0.030 [-0.001, 0.063] |
-| S2 default (No > Yes, no labels used) | -0.050 [-0.098, 0.000] | 0.086 [0.042, 0.132] | -0.065 [-0.104, -0.028] |
-| S2 tuned threshold | 0.172 [0.112, 0.241] | -0.134 [-0.188, -0.082] | 0.065 [0.027, 0.106] |
-| S3 hidden-state probe | 0.111 [0.033, 0.192] | -0.171 [-0.237, -0.105] | 0.103 [0.057, 0.149] |
+| S1 default threshold (no labels used) | -0.061 [-0.101, -0.025] | 0.124 [0.086, 0.162] | -0.098 [-0.133, -0.063] |
+| S1 tuned threshold | 0.096 [0.053, 0.142] | -0.059 [-0.101, -0.019] | 0.026 [-0.005, 0.060] |
+| S2 default (No > Yes, no labels used) | -0.050 [-0.098, 0.000] | 0.090 [0.045, 0.136] | -0.068 [-0.108, -0.032] |
+| S2 tuned threshold | 0.172 [0.112, 0.241] | -0.130 [-0.183, -0.078] | 0.062 [0.024, 0.102] |
+| S3 hidden-state probe | 0.111 [0.033, 0.192] | -0.167 [-0.232, -0.102] | 0.099 [0.054, 0.146] |
 
 Negative is good for false and missed refusal, positive is good for F1.
 

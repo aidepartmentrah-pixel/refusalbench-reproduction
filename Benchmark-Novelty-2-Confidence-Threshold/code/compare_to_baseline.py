@@ -7,7 +7,7 @@ Run this after the baseline is judged (the baseline run folder needs target_outp
       [--novelty-dir Benchmark-Novelty-2-Confidence-Threshold/results] [--subset-file data/novelty_sample_ids.json]
 
 How the baseline decides: a judged reply counts as a refusal when the judge classified it as any REFUSE_* code
-(the paper's definition, REFUSE_OTHER included); "answer_attempt" and "EMPTY" count as answering.
+(the paper's definition, REFUSE_OTHER included; a mistyped code such as `REFUSE_INFO_MISSING_IN CONTEXT` is mapped to the closest valid code); "answer_attempt" and "EMPTY" count as answering.
 Free-text refusals the judge recognised are therefore counted, which the no-judge reference could not do.
 
 Rule fixed before the numbers are seen: a rule is "BETTER than the baseline" when the lower end of the 95% cluster-bootstrap
@@ -33,6 +33,7 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, HERE)
 
 from analysis import BLUE, ORANGE, AQUA, INK, MUTED, SURFACE, _style, rates  # noqa: E402
+from src.metrics import normalize_classification  # noqa: E402
 from src.runner import read_jsonl  # noqa: E402
 from src.schema_adapter import REFUSAL_CODES  # noqa: E402
 
@@ -53,7 +54,7 @@ def load_baseline(baseline_dir):
     """Returns ({id: refuses?}, n_generated, n_judged, n_empty)."""
     target = read_jsonl(os.path.join(baseline_dir, "target_outputs.jsonl"))
     judged = {r["example_id"]: r for r in read_jsonl(os.path.join(baseline_dir, "judged_outputs.jsonl"))}
-    dec = {i: (r["classification"] in REFUSAL_CODES) for i, r in judged.items()}
+    dec = {i: (normalize_classification(r["classification"]) in REFUSAL_CODES) for i, r in judged.items()}
     n_empty = sum(1 for r in judged.values() if r["classification"] == "EMPTY")
     return dec, len(target), len(judged), n_empty
 

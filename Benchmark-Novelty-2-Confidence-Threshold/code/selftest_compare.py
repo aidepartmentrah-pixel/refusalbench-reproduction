@@ -86,6 +86,15 @@ with tempfile.TemporaryDirectory() as tmp:
     write_baseline(base, refuse, code="REFUSE_CONTRADICTORY_CONTEXT")
     assert C.load_baseline(base)[0][ids[2]] is True
 
+    # --- a mistyped refusal code still counts as a refusal
+    write_baseline(base, np.zeros(n, bool))
+    rows_ = [json.loads(l) for l in open(os.path.join(base, "judged_outputs.jsonl"), encoding="utf-8")]
+    rows_[0]["classification"] = "REFUSE_INFO_MISSING_IN CONTEXT"
+    with open(os.path.join(base, "judged_outputs.jsonl"), "w", encoding="utf-8") as f:
+        for r in rows_:
+            f.write(json.dumps(r) + chr(10))
+    assert C.load_baseline(base)[0][ids[0]] is True and C.load_baseline(base)[0][ids[1]] is False
+
     # --- only part of the baseline is judged: compare on the overlap, and warn if it is not representative
     part = set(ids[: n // 2])
     d, res, (n_gen, n_judged, _) = run(rng.random(n) < 0.5, judged_ids=part)
