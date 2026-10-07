@@ -1,6 +1,6 @@
 """Write the speaker notes of every slide into one readable file: exports/speaker-notes.md.
 
-Reads expanded-slides.html (the text inside each slide's <aside>), so the notes always match the deck.
+Reads defense-12-slides.html (the text inside each slide's <aside>), so the notes always match the deck.
 Run:  python export_notes.py
 """
 
@@ -9,13 +9,13 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-src = open(os.path.join(HERE, "expanded-slides.html"), encoding="utf-8").read()
+src = open(os.path.join(HERE, "defense-12-slides.html"), encoding="utf-8").read()
 
-out = ["# Speaker notes: expanded presentation", "",
+out = ["# Speaker notes: 12-slide defense presentation", "",
        "One section per slide, in order. Each starts with the time to spend, then what to say, then the questions to expect.",
-       "The 12-minute hand-in deck is `../../Benchmark-Novelty-2-Confidence-Threshold Presentation/defense-slides.html`.", ""]
+       "Total about 12 minutes. The time for each slide is the first thing in its notes.", ""]
 n = 0
-for m in re.finditer(r'<section class="slide[^"]*" data-title="([^"]*)">(.*?)</section>', src, re.S):
+for m in re.finditer(r'<section class="slide[^"]*" data-title="([^"]*)"[^>]*>(.*?)</section>', src, re.S):
     n += 1
     title, body = m.group(1), m.group(2)
     eyebrow = re.search(r'<div class="eyebrow">(.*?)</div>', body, re.S)

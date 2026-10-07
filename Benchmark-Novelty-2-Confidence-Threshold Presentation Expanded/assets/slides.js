@@ -6,6 +6,22 @@
   var notes = document.getElementById('notes');
   var i = 0, s = 0;
 
+  // "where are we": the five parts of the talk, the current one marked (each slide has data-part = 0..4)
+  var PARTS = ['The paper', 'Reproduction', 'Extension 1', 'Extension 2', 'Conclusion'];
+  slides.forEach(function (sl) {
+    var p = sl.getAttribute('data-part');
+    if (p === null) { return; }
+    var nav = document.createElement('div');
+    nav.className = 'trk';
+    PARTS.forEach(function (name, k) {
+      var sp = document.createElement('span');
+      sp.textContent = name;
+      if (k === +p) { sp.className = 'cur'; }
+      nav.appendChild(sp);
+    });
+    sl.insertBefore(nav, sl.firstChild);
+  });
+
   function fit() {
     stage.style.transform = 'scale(' + Math.min(window.innerWidth / 1280, window.innerHeight / 720) + ')';
   }

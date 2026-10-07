@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading, Not Asking · MSc defense</title>
+<meta name="description" content="Defense presentation: the RefusalBench paper, our reproduction with Qwen1.5-7B-Chat on a Google Colab T4, one failed extension and one extension that finds a real signal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/slides.css">
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+<div id="bar"></div>
+
+<!-- 1 · COVER ======================================================= -->
+<section class="slide cover" data-title="Cover">
+  <div class="eyebrow">MSc project defense · Data Science for Conversational AI</div>
+  <div class="mid">
+    <h1>Reading, Not Asking</h1>
+    <p class="lead gap2">Probing a small language model's internal signal for selective refusal in grounded question answering.</p>
+  </div>
+  <div class="who"><span><b>Abbass Zahreddine</b> · M2 Data Science, Lebanese University</span><span>Paper: RefusalBench, EACL 2026</span></div>
+  <aside>About 0.5 minutes. Say who you are and give the whole story in three sentences, so the room knows where it is going.
+"I took a research paper about when language models should refuse to answer. I reproduced it with a small model on a Google Colab T4. I tested two ideas to improve it. The first failed clearly. The second finds a real signal inside the model, but it does not clearly beat the baseline, and I will say exactly what the numbers do and do not prove."
+Five parts, shown at the top right of every slide: the paper, our reproduction, extension 1, extension 2, conclusion.</aside>
+</section>
+
+<!-- 2 · THE PAPER: PROBLEM ========================================== -->
+<section class="slide" data-title="The paper: problem" data-part="0">
+  <div class="eyebrow">The paper · Problem</div>
+  <h2>A grounded model must refuse when its evidence is flawed, and say why</h2>
+  <p class="sm">A <b>grounded</b> model answers only from the passage it is given. <b>Selective refusal</b> means: answer when the passage supports it, refuse and name the reason when it does not.</p>
+  <div class="flow gap2" style="align-items:stretch">
+    <div class="bx" style="flex:5;font-size:23px;line-height:1.38;padding:16px 18px"><div class="role">ORIGINAL · ANSWERABLE</div>
+      <b>Q:</b> When did the East India Company take control of India?<br><b>Passage:</b> The East India Company gained a foothold in India in 1611.<br><b>Reply:</b> 1611</div>
+    <div class="mid" style="padding:0 14px;text-align:center;font-size:18px;color:var(--muted)">one sentence<br>changed<br><span style="font-size:30px;color:var(--rust)">&rarr;</span></div>
+    <div class="bx acc" style="flex:5;font-size:23px;line-height:1.38;padding:16px 18px"><div class="role">PERTURBED · MUST REFUSE</div>
+      <b>Q:</b> When did <i>the company</i> take control of India?<br><b>Passage:</b> ...in 1611. <mark style="background:#fdd9e5;padding:0 4px;border-radius:3px">The Dutch East India Company established posts in India.</mark><br><b>Reply:</b> refuse, because "the company" is ambiguous</div>
+  </div>
+  <div class="role gap2">SIX REASONS TO REFUSE</div>
+  <div class="chips">
+    <span class="chip">Ambiguity</span><span class="chip">Contradiction</span><span class="chip">Missing information</span>
+    <span class="chip">False premise</span><span class="chip">Granularity mismatch</span><span class="chip">Epistemic mismatch</span>
+  </div>
+  <aside>About 1.25 minutes. Define the two terms out loud: grounded, and selective refusal. The example is Figure 1 of the paper: one sentence added to the passage turns an answerable question into one the model must refuse.
+The six reasons, with the benchmark's own examples: ambiguity ("the bat's weight" when the text has a baseball bat and an animal); contradiction ("revenue was $10M" and "revenue was $12M"); missing information ("who is the CEO?" when the text only describes products); false premise ("why did the Mars division fail?" when there is no Mars division); granularity mismatch ("average salary" when only two of fifty salaries are given); epistemic mismatch ("is this a good investment?" when only a stock price is given).
+Likely question: "Why not always answer?" A confident answer from a flawed passage can be wrong and harmful; the paper reports models refusing over 60% of answerable queries, or answering confidently despite critical information defects.</aside>
+</section>
+
+<!-- 3 · THE PAPER: METHODOLOGY ====================================== -->
+<section class="slide" data-title="The paper: methodology" data-part="0">
+  <div class="eyebrow">The paper · Methodology</div>
+  <h2>How RefusalBench works: break good evidence, then score the replies</h2>
+  <div class="role">1 · BUILDING THE TEST (done by the paper's authors)</div>
+  <div class="flow" data-step="1">
+    <div class="bx blue"><b>100 questions</b><small>good passage, answered correctly by every strong model</small></div><i class="ar"></i>
+    <div class="bx blue"><b>Break them</b><small>176 rewrite rules, 6 failure types, 3 strengths</small></div><i class="ar"></i>
+    <div class="bx blue"><b>Generate and verify</b><small>several LLMs write them, all must approve</small></div><i class="ar"></i>
+    <div class="bx fill"><b>1,600 examples</b><small>the released test set</small></div>
+  </div>
+  <div class="sbar gap" data-step="2"><div style="flex:536;background:var(--teal)">536 answerable</div><div style="flex:1064;background:var(--rose)">1,064 must be refused</div></div>
+  <div class="role gap2">2 · SCORING A MODEL</div>
+  <div class="flow" data-step="3">
+    <div class="bx teal"><b>Target model</b><small>the model being tested</small></div><i class="ar"></i>
+    <div class="bx"><b>Reply</b><small>an answer or a refusal code</small></div><i class="ar"></i>
+    <div class="bx acc"><b>Judge LLM</b><small>Claude-4-Sonnet in the paper</small></div><i class="ar"></i>
+    <div class="split2">
+      <div class="bx"><b>Answer</b>: score 1 to 5<small>4 or 5 is correct</small></div>
+      <div class="bx"><b>Refusal</b>: code compared<small>same as expected is correct</small></div>
+    </div>
+  </div>
+  <aside>About 1.5 minutes. Click through the three steps.
+Step 1: the benchmark is generated, not collected. Several strong LLMs rewrite a good example to break it in a known way, and a broken example is kept only if every model approves it (the paper says this filters model-specific artifacts). An expert checked 180 random examples: 93.1% were valid. So every example has a known correct reply.
+Step 2: the bar shows the data: 536 can be answered (the mild versions), 1,064 must be refused. All 1,600 are variants of only 100 questions, so they are not independent: this is why our later tests keep variants of one question together.
+Step 3: three roles. Builders wrote the test (Claude, GPT-4o, DeepSeek-R1, Nova Pro; already done, we did not rerun it). The target model is the student. The judge is the grader: it must be a different model from the student, because a model rates its own answers too kindly. A refusal is correct only if its code equals the expected code (a text match); an answer is correct if the judge scores it 4 or 5.
+Likely question: "Who judges the judge?" In the paper an expert checked the benchmark examples, not the judge. For our Gemini judge the 30-reply hand check is still to do; it is listed as a limit.</aside>
+</section>
+
+<!-- 4 · THE PAPER: FINDINGS ========================================= -->
+<section class="slide" data-title="The paper: findings" data-part="0">
+  <div class="eyebrow">The paper · Findings</div>
+  <h2>Best models are far from reliable; small ones rarely name the reason</h2>
+  <div class="cols c3">
+    <div class="stat"><div class="n">73.0%</div><div class="t">best refusal accuracy on this test set (Claude-4-Sonnet)</div></div>
+    <div class="stat"><div class="n">47.4%</div><div class="t">best on the harder multi-document set (DeepSeek-R1)</div></div>
+    <div class="stat"><div class="n">None</div><div class="t">of the models tested reaches 80% on both answering and refusing</div></div>
+  </div>
+  <ul class="gap">
+    <li><b>Detecting</b> that a refusal is needed is easier than saying <b>why</b>.</li>
+    <li>Qwen models: answer accuracy jumps from 13.0% to 56.1% between 4B and 7B, but refusal accuracy stays below 17% at every size. <b>Qwen1.5-7B-Chat:</b> about 5%.</li>
+  </ul>
+  <div class="role gap">TERMS WE USE FROM NOW ON</div>
+  <div class="chips">
+    <span class="chip k">Refusal accuracy: refused, with the right reason</span>
+    <span class="chip k">False refusal: refused an answerable question</span>
+    <span class="chip k">Missed refusal: answered when it had to refuse</span>
+  </div>
+  <div class="note plain gap2"><b>That is the paper.</b> Next: what we reproduced, and what we tested on top of it.</div>
+  <aside>About 1 minute. All numbers are the paper's own: 73.0% and 47.4% are in the introduction and Figure 5; 13.0% to 56.1% is the scaling section; "no model above 80% on both" is the Figure 5 caption. The Qwen-7B refusal accuracy of about 5% is read from a small plot, so say "about".
+The paper measures this weakness; it does not propose a way to fix it. That is where our work starts.
+Say the closing sentence out loud: the paper part is over. Then define the three terms once, because the numbers that follow use them.
+Worked example of the terms, if asked (invented numbers): 10 answerable and 10 must-refuse questions; the model refuses 2 answerable (false refusal 20%) and answers 4 that needed refusing (missed refusal 40%); of the 6 it refused only 1 gave the right reason (refusal accuracy 10%). Our summary, balanced accuracy, is 1 minus the average of the two error rates: 1 - (20% + 40%) / 2 = 70%, where 50% is a coin flip. We use it because two thirds of the examples must be refused.</aside>
+</section>
+
+<!-- 5 · REPRODUCTION: DESIGN ======================================== -->
+<section class="slide" data-title="Reproduction: design" data-part="1">
+  <div class="eyebrow">Our reproduction · Design</div>
+  <h2>The same test, run on a Google Colab T4 and judged by Gemini</h2>
+  <p class="sm"><b>Question:</b> does the paper's failure pattern appear for a small open model, Qwen1.5-7B-Chat?</p>
+  <div class="gap"><svg width="1136" height="300" viewBox="0 0 1136 300" role="img" aria-label="Evaluation pipeline: reply goes to a parser; clean refusal codes are compared with the expected code, everything else goes to the Gemini judge; both feed the metrics.">
+<defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#14213d"/></marker></defs>
+<rect x="0" y="0" width="230" height="62" rx="6" fill="#ffffff" stroke="#14213d" stroke-width="1.8"/>
+<text x="115.0" y="39.4" text-anchor="middle" font-size="21" font-weight="600" fill="#14213d">Question + passage</text>
+<rect x="268" y="0" width="230" height="62" rx="6" fill="#def4f0" stroke="#0f9d8a" stroke-width="1.8"/>
+<text x="383.0" y="27.7" text-anchor="middle" font-size="21" font-weight="600" fill="#14213d">Qwen1.5-7B-Chat</text>
+<text x="383.0" y="55.3" text-anchor="middle" font-size="18" fill="#5b6577">writes a reply</text>
+<rect x="536" y="0" width="230" height="62" rx="6" fill="#ffffff" stroke="#14213d" stroke-width="1.8"/>
+<text x="651.0" y="39.4" text-anchor="middle" font-size="21" font-weight="600" fill="#14213d">Generated reply</text>
+<rect x="804" y="0" width="332" height="62" rx="6" fill="#fbf1e9" stroke="#b5541a" stroke-width="1.8"/>
+<text x="970.0" y="27.7" text-anchor="middle" font-size="21" font-weight="600" fill="#14213d">Parser</text>
+<text x="970.0" y="55.3" text-anchor="middle" font-size="18" fill="#5b6577">exactly one clean refusal code?</text>
+<path d="M230 31 H264" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/><path d="M498 31 H532" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/><path d="M766 31 H800" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/>
+<path d="M970 62 V92 H190 V132" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/>
+<path d="M970 62 V132" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/>
+<text x="204" y="120" font-size="19" font-weight="600" fill="#0f9d8a">Yes: 528 replies (34%)</text>
+<text x="956" y="120" font-size="19" font-weight="600" text-anchor="end" fill="#b5541a">No: 1,032 replies (66%)</text>
+<rect x="40" y="136" width="300" height="62" rx="6" fill="#def4f0" stroke="#0f9d8a" stroke-width="1.8"/>
+<text x="190.0" y="163.7" text-anchor="middle" font-size="21" font-weight="600" fill="#14213d">Compare with expected code</text>
+<text x="190.0" y="191.3" text-anchor="middle" font-size="18" fill="#5b6577">plain text match, no judge</text>
+<rect x="810" y="136" width="320" height="62" rx="6" fill="#fbf1e9" stroke="#b5541a" stroke-width="1.8"/>
+<text x="970.0" y="163.7" text-anchor="middle" font-size="21" font-weight="600" fill="#14213d">Gemini judge</text>
+<text x="970.0" y="191.3" text-anchor="middle" font-size="18" fill="#5b6577">answer or refusal · score 1 to 5</text>
+<path d="M190 198 V267 H286" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/>
+<path d="M970 198 V267 H854" fill="none" stroke="#14213d" stroke-width="2.2" marker-end="url(#a1)"/>
+<rect x="290" y="236" width="560" height="62" rx="6" fill="#14213d" stroke="#14213d" stroke-width="1.8"/>
+<text x="570.0" y="263.7" text-anchor="middle" font-size="21" font-weight="600" fill="#fff">Metrics</text>
+<text x="570.0" y="291.3" text-anchor="middle" font-size="18" fill="#c9d0de">answer and refusal accuracy · false and missed refusal</text>
+</svg></div>
+  <div class="mem gap" data-step="1">
+    <div class="m big">Qwen1.5-7B<small>about 15 GB at 16-bit</small></div><span class="sym">&rarr;</span>
+    <div class="m">4-bit quantization</div><span class="sym">&rarr;</span>
+    <div class="m fit">about 5 GB</div><span class="sym">&rarr;</span>
+    <div class="m">fits a Colab T4<small>15 GB of GPU memory</small></div>
+  </div>
+  <p class="cap gap" data-step="2"><b>Kept:</b> Qwen1.5-7B-Chat, the 1,600 examples, the paper's prompt, temperature 1.0. <b>Changed:</b> four A100 GPUs to one Colab T4, likely full precision to 4-bit, Claude judge to Gemini, judge used only for replies without a clean code.</p>
+  <aside>About 1.5 minutes. This is the "code and reproduction" part of the rubric: be exact about what is the same and what changed.
+The diagram is the whole evaluation. A reply goes to the parser. If it is exactly one clean refusal code (528 of 1,560 replies, 34%), it is compared with the expected code directly, no judge. Everything else (1,032 replies, 66%: free text, an unknown code, or several codes) goes to the Gemini judge. Careful: a reply with no code is NOT assumed to be an answer, because a small model often refuses in plain words.
+Click once: for classmates who have never run a model on a GPU. A 7B model is about 15 GB at 16-bit, which barely fits a 15 GB T4 and leaves no room to work; storing each weight in 4 bits brings it to about 5 GB. Our code is cloned from GitHub in a Colab notebook, runs in batches, and saves every batch to Google Drive; if Colab disconnects, run it again and it resumes.
+Click again for what was kept and what changed. The prompt was sent as a single user message, as in the original code.
+Likely question: "Does 4-bit change the results?" It can, slightly. It is listed as a deviation and we did not measure the effect.
+Likely question: "So is it a reproduction?" A close one with documented deviations: the paper's finding is reproduced; exact numbers are not expected to match.</aside>
+</section>
+
+<!-- 6 · REPRODUCTION: RESULTS ======================================= -->
+<section class="slide" data-title="Reproduction: results" data-part="1">
+  <div class="eyebrow">Our reproduction · Results</div>
+  <h2>The paper's failure pattern appears: the right reason for refusing is rare</h2>
+  <div class="cols c2" style="grid-template-columns:520px 1fr;gap:56px">
+    <div><svg width="520" height="340" viewBox="0 0 520 340" role="img" aria-label="Answer accuracy and refusal accuracy, paper versus ours.">
+<rect x="0" y="6" width="16" height="16" rx="3" fill="#9aa3b2"/><text x="24" y="20" font-size="19">Paper</text>
+<rect x="112" y="6" width="16" height="16" rx="3" fill="#2f6fde"/><text x="136" y="20" font-size="19">Ours</text>
+<line x1="40" y1="270" x2="500" y2="270" stroke="#14213d" stroke-width="2"/>
+<rect x="72" y="141.0" width="74" height="129.0" fill="#9aa3b2" rx="3"/>
+<text x="109" y="132.0" text-anchor="middle" font-size="20" font-weight="600">0.561</text>
+<rect x="154" y="111.3" width="74" height="158.7" fill="#2f6fde" rx="3"/>
+<text x="191" y="102.3" text-anchor="middle" font-size="20" font-weight="600">0.690</text>
+<text x="150" y="298" text-anchor="middle" font-size="20" font-weight="600">Answer accuracy</text>
+<rect x="312" y="258.5" width="74" height="11.5" fill="#9aa3b2" rx="3"/>
+<text x="349" y="249.5" text-anchor="middle" font-size="20" font-weight="600">~0.05</text>
+<rect x="394" y="243.8" width="74" height="26.2" fill="#2f6fde" rx="3"/>
+<text x="431" y="234.8" text-anchor="middle" font-size="20" font-weight="600">0.114</text>
+<text x="390" y="298" text-anchor="middle" font-size="20" font-weight="600">Refusal accuracy</text>
+<text x="390" y="320" text-anchor="middle" font-size="18" fill="#5b6577">right reason</text>
+</svg></div>
+    <div class="stack">
+      <div class="stat"><div class="n">0.456</div><div class="t">of the refusals that were needed were missed (answered instead)</div></div>
+      <div class="stat"><div class="n">0.165</div><div class="t">of the answerable questions were wrongly refused</div></div>
+      <p class="sm">Most missed: <b>ambiguity (0.74)</b> and <b>contradiction (0.71)</b>.</p>
+    </div>
+  </div>
+  <div class="note warn gap"><b>Honest status:</b> 770 of 1,560 replies are graded so far (daily judge quota). The two sets of numbers are not directly comparable: different judge, precision and software.</div>
+  <aside>About 1 minute. Read the headline: what reproduces is the pattern, not the exact numbers. Refusal accuracy is low in both (our 0.114 against the paper's about 0.05, read from a plot). Our answer accuracy is higher (0.690 against 0.561); I do not claim to beat the paper, because the judge, the 4-bit model and the software differ.
+Our numbers: 770 graded replies, of which 509 had to be refused and 261 were answerable. The graded part is a seeded random sample of the 1,560 generated replies, and our comparison script checks it is representative. 40 examples ran out of GPU memory in the first run and are excluded (2.5%).
+Likely question: "Is the baseline finished?" No. Grading is limited by a daily judge quota; the remaining replies and a 30-reply hand check of the judge are the next steps.
+Likely question: "How do you know Gemini grades like Claude?" I do not yet. That is the main open limit.</aside>
+</section>
+
+<!-- 7 · EXTENSION 1 ================================================= -->
+<section class="slide" data-title="Extension 1" data-part="2">
+  <div class="eyebrow">Extension 1 · Hypothesis, method and result</div>
+  <h2>Extension 1: asking the model to diagnose the evidence first failed</h2>
+  <div class="cols" style="grid-template-columns:5fr 6fr;gap:44px">
+    <div class="stack">
+      <div class="hyp"><small>HYPOTHESIS</small>If the model first names what is wrong with the evidence, its decision improves.</div>
+      <div class="prompt"><span class="lbl">BASELINE</span>Answer from the passage, or reply with a refusal code.</div>
+      <div class="prompt"><span class="lbl">CONTROL</span>Same, plus <mark>end with a FINAL: line</mark></div>
+      <div class="prompt" style="border-left-color:var(--rose)"><span class="lbl">DIAGNOSE FIRST</span>Same, plus <mark>first write EVIDENCE_STATE: clear, or one of six problems</mark>, then FINAL:</div>
+    </div>
+    <div>
+      <div class="role">HOW OFTEN THE MODEL WROTE "CLEAR"</div>
+      <div class="bignum">762<small> / 800</small></div>
+      <p class="sm"><b>95%</b>, including <b>504 of the 532</b> examples that had to be refused.</p>
+      <div class="role gap2">REFUSALS CAUGHT</div>
+      <div class="mini"><span>Baseline</span><div class="track"><div class="fill" style="width:43.3%"></div></div><span class="val">43.3%</span></div>
+      <div class="mini"><span>Control</span><div class="track"><div class="fill grey" style="width:35.8%"></div></div><span class="val">35.8%</span></div>
+      <div class="mini"><span>Diagnose first</span><div class="track"><div class="fill rose" style="width:1.9%"></div></div><span class="val">1.9%</span></div>
+    </div>
+  </div>
+  <aside>About 1.25 minutes. Give the failure its full time: a clean negative result is worth marks for honesty and result quality.
+The control changes only one thing, a final line, so we can tell whether tidier output alone explains a difference. The control is also slightly worse than the baseline, but nothing like this.
+Numbers: 800 stratified examples (268 answerable, 532 must be refused) covering all 100 source questions; the bars use the 776 examples also present in the baseline and count clean refusal codes only, so the baseline and control figures are lower bounds. The gap to diagnose-first is still huge, and the differences are significant (paired bootstrap over source questions). The model also wrote CLEAR for 258 of 268 answerable examples, and for ambiguity 68 of 69, contradiction 87 of 94, missing information 87 of 92, false premise 89 of 93, granularity 83 of 92, epistemic 90 of 92.
+Likely question: "Why did it fail?" I do not know. "Anchoring on clear" would be a guess, not a finding; I tested nothing about the mechanism.</aside>
+</section>
+
+<!-- 8 · THE TURNING POINT (dark) ==================================== -->
+<section class="slide dark" data-title="Turning point" data-part="3">
+  <div class="eyebrow">Turning point · from Extension 1 to Extension 2</div>
+  <div class="pv-row gap2" style="margin-top:34px">
+    <div class="bx bad"><b>Ask the model</b><small>to diagnose the evidence first</small></div><i class="ar"></i>
+    <div class="bx bad"><b>95% said CLEAR</b><small>762 of 800 examples</small></div><i class="ar"></i>
+    <div class="bx bad"><b>It failed</b><small>1.9% of needed refusals caught</small></div>
+  </div>
+  <div class="mid">
+    <div class="pivot">Do not ask the model.<br><span class="hl">Read it.</span></div>
+    <p class="lead gap2" style="color:#aab4c8;max-width:36ch">If its written answer cannot be trusted, look at what it computes before it writes.</p>
+  </div>
+  <aside>About 0.5 minutes. Pause here. This is the turning point of the project, so say it slowly.
+"My first idea asked the model what was wrong with the evidence. It said everything was clear, 95% of the time. So the second idea does not ask. It reads the signal the model already computes, before it writes a single word."
+Do not explain the method yet: the next slide does.</aside>
+</section>
+
+<!-- 9 · EXTENSION 2: METHOD ========================================= -->
+<section class="slide" data-title="Extension 2: method" data-part="3">
+  <div class="eyebrow">Extension 2 · Hypothesis and method</div>
+  <h2>Extension 2: read the model's own signal instead of its written answer</h2>
+  <div class="hyp"><small>HYPOTHESIS</small>Scores and hidden states separate the cases that need a refusal, even when written decisions miss them.</div>
+  <div class="flow gap2" style="align-items:stretch">
+    <div class="bx" style="flex:.8"><b>Question + passage</b></div><i class="ar"></i>
+    <div class="bx teal" style="flex:1.1"><b>Qwen1.5-7B</b><small>one forward pass per prompt, no text written</small></div><i class="ar"></i>
+    <div class="split2" style="flex:2">
+      <div class="bx blue"><b>S1</b> · refusal probability<small>chance a refusal code comes first</small></div>
+      <div class="bx blue"><b>S2</b> · yes or no<small>chance of No against Yes</small></div>
+      <div class="bx acc"><b>S3</b> · linear probe<small>classifier on the hidden state</small></div>
+    </div><i class="ar"></i>
+    <div class="bx fill" style="flex:1"><b>Score above a threshold?</b><small>yes: refuse, no: answer</small></div>
+  </div>
+  <div class="cols c2 gap2" style="align-items:center">
+    <div>
+      <div class="role">EVALUATION DESIGN · 5 GROUPS OF SOURCE QUESTIONS</div>
+      <div class="folds"><div class="fold train">tune</div><div class="fold train">tune</div><div class="fold train">tune</div><div class="fold train">tune</div><div class="fold held">test</div></div>
+      <p class="cap gap">Repeated so each group is tested once.</p>
+    </div>
+    <ul class="sm">
+      <li>Tuned on other questions only, so variants of one question never sit on both sides.</li>
+      <li>Intervals resample whole questions. The success rule was fixed before the run.</li>
+    </ul>
+  </div>
+  <aside>About 1.25 minutes. A <b>probe</b> is just a simple classifier (logistic regression) that looks at the model's internal numbers; the <b>hidden state</b> is the numbers the model computes on the way to its answer. Higher score always means "refuse". Nothing is generated: each score comes from one forward pass under its own prompt (S1 uses the paper's prompt, S2 a second yes/no prompt, S3 reads the hidden states of either pass).
+Say clearly: S1 and S2 at their default thresholds use no labels; S3 is trained with the benchmark's labels. That is why the probe is a diagnostic of what the hidden state contains, not an equal-training comparison with the baseline.
+Why the five groups: 1,600 examples are variants of 100 questions. A random split would put variants of the same question in training and test, and the result would look better than it is. A unit test corrupts the labels of one group and checks that the threshold for that group does not change. Honest limit: the intervals resample the held-out predictions; the fitting is not repeated inside each resample.
+Success rule: signal if the lower end of S1's AUROC interval is above 0.5; gain if the tuned threshold beats the default with its interval above zero.
+Scoring takes about 0.3 seconds per example on a T4. Likely question: "Where is your novelty?" Reading these signals for grounded refusal on this benchmark with a small open model, tested against the paper's baseline, with the version that did not work reported honestly. Related work (Yin et al., R-Tuning, Self-RAG) changes the model by training; ours keeps the weights fixed.</aside>
+</section>
+
+<!-- 10 · EXTENSION 2: RESULTS ======================================= -->
+<section class="slide" data-title="Extension 2: results" data-part="3">
+  <div class="eyebrow">Extension 2 · Results</div>
+  <h2>Extension 2 result: the signal exists, a better decision is not shown</h2>
+  <svg width="1136" height="410" viewBox="0 0 1136 410" role="img" aria-label="Left: AUROC of the three readouts with 95 percent intervals, all above chance. Right: difference in balanced accuracy versus the baseline; only S1 excludes zero, and it is worse; the probe interval crosses zero.">
+<text x="0" y="26" font-size="23" font-weight="600">A. Is there information inside the model?</text>
+<text x="0" y="54" font-size="18" fill="#5b6577">AUROC with 95% interval: 0.5 is chance, 1.0 is perfect</text>
+<text x="616" y="26" font-size="23" font-weight="600">B. Does using it beat the baseline?</text>
+<text x="616" y="54" font-size="18" fill="#5b6577">Balanced accuracy minus baseline (0.690), 95% interval</text>
+<line x1="140.0" y1="92" x2="140.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="140.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">0.5</text>
+<line x1="227.5" y1="92" x2="227.5" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="227.5" y="366" text-anchor="middle" font-size="18" fill="#5b6577">0.6</text>
+<line x1="315.0" y1="92" x2="315.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="315.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">0.7</text>
+<line x1="402.5" y1="92" x2="402.5" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="402.5" y="366" text-anchor="middle" font-size="18" fill="#5b6577">0.8</text>
+<line x1="490.0" y1="92" x2="490.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="490.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">0.9</text>
+<line x1="140.0" y1="92" x2="140.0" y2="338" stroke="#14213d" stroke-width="2.2" stroke-dasharray="6 5"/>
+<text x="148.0" y="108" font-size="18" fill="#5b6577">chance</text>
+<line x1="790.0" y1="92" x2="790.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="790.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">-0.08</text>
+<line x1="870.0" y1="92" x2="870.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="870.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">-0.04</text>
+<line x1="950.0" y1="92" x2="950.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="950.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">0</text>
+<line x1="1030.0" y1="92" x2="1030.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="1030.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">+0.04</text>
+<line x1="1110.0" y1="92" x2="1110.0" y2="338" stroke="#dfe3ea" stroke-width="1.5"/>
+<text x="1110.0" y="366" text-anchor="middle" font-size="18" fill="#5b6577">+0.08</text>
+<line x1="950.0" y1="92" x2="950.0" y2="338" stroke="#14213d" stroke-width="2.2" stroke-dasharray="6 5"/>
+<text x="958.0" y="108" font-size="18" fill="#5b6577">same as baseline</text>
+<text x="790.0" y="396" font-size="18" fill="#5b6577">worse</text>
+<text x="1110.0" y="396" text-anchor="end" font-size="18" fill="#5b6577">better</text>
+<text x="0" y="148" font-size="22" font-weight="600">S1</text>
+<text x="0" y="170" font-size="18" fill="#5b6577">refusal prob.</text>
+<line x1="314.1" y1="150" x2="360.5" y2="150" stroke="#2f6fde" stroke-width="5" stroke-linecap="round"/>
+<circle cx="337.8" cy="150" r="10" fill="#2f6fde" stroke="#fff" stroke-width="2.5"/>
+<text x="337.8" y="130" text-anchor="middle" font-size="20" font-weight="600">0.726</text>
+<text x="616" y="148" font-size="22" font-weight="600">S1</text>
+<text x="616" y="170" font-size="18" fill="#5b6577">accuracy 0.658</text>
+<line x1="836.0" y1="150" x2="940.0" y2="150" stroke="#2f6fde" stroke-width="5" stroke-linecap="round"/>
+<circle cx="888.0" cy="150" r="10" fill="#2f6fde" stroke="#fff" stroke-width="2.5"/>
+<text x="888.0" y="130" text-anchor="middle" font-size="20" font-weight="600">-0.031</text>
+<text x="0" y="223" font-size="22" font-weight="600">S2</text>
+<text x="0" y="245" font-size="18" fill="#5b6577">yes or no</text>
+<line x1="335.1" y1="225" x2="382.4" y2="225" stroke="#0f9d8a" stroke-width="5" stroke-linecap="round"/>
+<circle cx="359.6" cy="225" r="10" fill="#0f9d8a" stroke="#fff" stroke-width="2.5"/>
+<text x="359.6" y="205" text-anchor="middle" font-size="20" font-weight="600">0.751</text>
+<text x="616" y="223" font-size="22" font-weight="600">S2</text>
+<text x="616" y="245" font-size="18" fill="#5b6577">accuracy 0.669</text>
+<line x1="856.0" y1="225" x2="964.0" y2="225" stroke="#0f9d8a" stroke-width="5" stroke-linecap="round"/>
+<circle cx="910.0" cy="225" r="10" fill="#0f9d8a" stroke="#fff" stroke-width="2.5"/>
+<text x="910.0" y="205" text-anchor="middle" font-size="20" font-weight="600">-0.020</text>
+<text x="0" y="298" font-size="22" font-weight="600">S3</text>
+<text x="0" y="320" font-size="18" fill="#5b6577">probe</text>
+<line x1="376.2" y1="300" x2="424.4" y2="300" stroke="#b5541a" stroke-width="5" stroke-linecap="round"/>
+<circle cx="399.9" cy="300" r="10" fill="#b5541a" stroke="#fff" stroke-width="2.5"/>
+<text x="399.9" y="280" text-anchor="middle" font-size="20" font-weight="600">0.797</text>
+<text x="616" y="298" font-size="22" font-weight="600">S3</text>
+<text x="616" y="320" font-size="18" fill="#5b6577">accuracy 0.718</text>
+<line x1="922.0" y1="300" x2="1080.0" y2="300" stroke="#b5541a" stroke-width="5" stroke-linecap="round"/>
+<circle cx="1006.0" cy="300" r="10" fill="#b5541a" stroke="#fff" stroke-width="2.5"/>
+<text x="1006.0" y="280" text-anchor="middle" font-size="20" font-weight="600">+0.028</text>
+</svg>
+  <div class="note warn gap"><b>Signal exists &rarr; deployment gain not established.</b> The probe's interval crosses zero, so we claim no improvement.</div>
+  <aside>About 1.5 minutes. This is the "result quality" part of the rubric: read the verdict out loud, do not oversell.
+Left (question A): all three readouts separate the cases far better than chance; their intervals start at 0.70 or higher. So the information is there.
+Right (question B): would using it make better decisions than the judged baseline (balanced accuracy 0.690)? S1's whole interval is below zero (slightly worse). S2 is unclear. The probe S3 has the best point estimate, +0.028, but its interval runs from -0.014 to +0.065, so we do not claim an improvement. With five comparisons and no correction, even S1's "worse" is not robust.
+Why a good AUROC does not give a better decision: AUROC measures ranking over every possible threshold; a deployed rule needs one operating point, and moving the threshold only trades one error for the other. In the trade-off picture the baseline sits close to the S1 and S2 curves and just above the probe's.
+Per failure type (same 770 examples, needed refusals missed / answerable refused): contradiction baseline .71 / .17, S2 .23 / .50, probe .19 / .29; ambiguity baseline .74 / .09, probe .45 / .23; false premise baseline .19 / .33, probe .25 / .23. So the probe finds many more contradictions and ambiguities, but refuses more answerable questions.
+Hostile question: "Your baseline depends on an unvalidated Gemini judge for most replies, while your rules are scored against labels." Answer: treat the comparison as provisional; I compare on the same 770 examples with intervals that resample whole questions, I claim no winner, and grading the rest plus the 30-reply judge check are the two next steps.</aside>
+</section>
+
+<!-- 11 · CONCLUSION ================================================= -->
+<section class="slide" data-title="Conclusion" data-part="4">
+  <div class="eyebrow">Conclusion and limitations</div>
+  <div class="neq gap2"><span class="d">Decodable</span><span class="x">&ne;</span><span class="p">Deployable</span></div>
+  <p class="lead gap2" style="max-width:none;text-align:center;font-size:26px">The signal is inside the model. Turning it into a better decision is a separate problem.</p>
+  <div class="cols c3 gap2" style="gap:36px">
+    <div class="colrule"><h3>We can say</h3><ul><li>A small model's scores and hidden states carry real information about when to refuse.</li><li>Asking it to diagnose first backfires.</li></ul></div>
+    <div class="colrule"><h3>We cannot say</h3><ul><li>That our method beats the baseline.</li><li>Why the model answers "clear".</li><li>That this holds for other models.</li></ul></div>
+    <div class="colrule"><h3>A full run needs</h3><ul><li>All 1,560 replies graded.</li><li>The 30-reply check of the judge.</li><li>More seeds, models and benchmarks.</li></ul></div>
+  </div>
+  <aside>About 0.75 minutes. End on the honest statement, then stop talking and invite questions.
+Central finding in one line: decodable is not deployable. A signal can be present in a model and still not be turned into a clearly better decision by simple rules.
+"A full run" is the course's term: we ran a smaller-scale version; here is exactly what the full version needs. Related follow-up work to name if asked: Yin et al. (do models know what they do not know), R-Tuning (training a model to say "I don't know"), Self-RAG (a model that critiques its own retrieval). All three change the model by training; ours keeps the weights fixed and reads signals it already produces.</aside>
+</section>
+
+<!-- 12 · REFERENCES ================================================= -->
+<section class="slide" data-title="References">
+  <div class="eyebrow">References</div>
+  <div class="cols c2" style="gap:36px">
+    <ul class="sm">
+      <li>Muhamed et al. <b>RefusalBench.</b> EACL 2026, arXiv 2510.10390.</li>
+      <li>Bai et al. <b>Qwen Technical Report.</b> arXiv 2309.16609, 2023.</li>
+      <li>Kwiatkowski et al. <b>Natural Questions.</b> TACL 7, 2019.</li>
+      <li>Kadavath et al. <b>Language Models (Mostly) Know What They Know.</b> arXiv 2207.05221.</li>
+      <li>Burns et al. <b>Discovering Latent Knowledge.</b> ICLR 2023.</li>
+      <li>Azaria and Mitchell. <b>The Internal State of an LLM Knows When It's Lying.</b> arXiv 2304.13734.</li>
+      <li>Alain and Bengio. <b>Linear Classifier Probes.</b> arXiv 1610.01644.</li>
+    </ul>
+    <ul class="sm">
+      <li>Yin et al. <b>Do LLMs Know What They Don't Know?</b> Findings of ACL 2023.</li>
+      <li>Zhang et al. <b>R-Tuning.</b> NAACL 2024.</li>
+      <li>Asai et al. <b>Self-RAG.</b> arXiv 2310.11511, 2023.</li>
+      <li>Geifman and El-Yaniv. <b>Selective Classification for Deep Neural Networks.</b> 2017.</li>
+      <li>Zheng et al. <b>Judging LLM-as-a-Judge.</b> NeurIPS 2023.</li>
+      <li>Cameron, Gelbach, Miller. <b>Bootstrap with clustered errors.</b> REStat 2008.</li>
+      <li><b>Code, data, report:</b> github.com/aidepartmentrah-pixel/refusalbench-reproduction</li>
+    </ul>
+  </div>
+  <aside>Leave this up during questions. The full list of 20 references is in the IEEE-format report.</aside>
+</section>
+
+<!-- viewer chrome -->
+<div id="help">Arrow keys or space to move. N for notes, F for fullscreen.</div>
+<div id="hud"><span id="count"></span><button id="prev" type="button">Back</button><button id="next" type="button">Next</button></div>
+<div id="notes"></div>
+</div>
+</div>
+<script src="assets/slides.js"></script>
+</body>
+</html>
