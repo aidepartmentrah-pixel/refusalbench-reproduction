@@ -151,7 +151,7 @@ Idea (note 9, idea 5, with 2 and 6 as ablations): do not read what Qwen *writes*
 - [ ] F1 [C] Repo layout with `baseline/` and `extension/` that both run
 - [ ] F2 [C] README: setup, Colab steps, commands, outputs, deviations
 - [~] F3 [B] Research-style report: **IEEE-format draft written and revised after a GPT review (6 pages, LaTeX, 20 verified references) in `Benchmark-Novelty-2-Confidence-Threshold Paper/`** (`main.tex`, `Novelty2_paper_draft.pdf`, `Novelty2_paper_overleaf.zip`, `README.md` with the to-do list). Open: authors, update numbers when the baseline is fully graded, judge hand check
-- [ ] F4 [B] Slides: cover, six content slides (problem, original solution, original and reproduced results, limitation and idea, our implementation, our results), references
+- [~] F4 [B] Slides: **HTML deck built in the course's design system (8 slides, notes on each, 12 minutes) in `Benchmark-Novelty-2-Confidence-Threshold Presentation/`**; the course audit passes (14 of 14 checks); PDF and notes handout exported. Open: update the numbers after full grading, try presenter view by hand, and the repo layout (`baseline/`, `extension/`, `report/REPORT.md`, `slides/`)
 - [ ] F5 [Y] Prepare the 12-minute defense and questions
 - [ ] F6 [C] Update the Obsidian notes with final results
 

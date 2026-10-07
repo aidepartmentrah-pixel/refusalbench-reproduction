@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading, Not Asking · Team defense, Data Science for Conversational AI</title>
+<meta name="description" content="Defense slides: a reproduction of RefusalBench with Qwen1.5-7B-Chat, one failed extension and one extension that finds a real signal.">
+<meta name="theme-color" content="#96122B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/lu.css?v=1.3.2">
+</head>
+
+<body
+  data-deck-id="dsca-defense-refusalbench"
+  data-course="Data Science for Conversational AI"
+  data-session="Team defense · Module 6"
+  data-duration="12"
+  data-app-root="./"
+  data-unit="Lebanese University · MSc">
+
+<a class="lu-skip" href="#slide-2">Skip to the first content slide</a>
+
+<div class="deck">
+<div class="deck__stage">
+
+<!-- ── 00 · COVER ────────────────────────────────────────────────────────── -->
+<section class="slide slide--night" data-chrome="none" data-label="Cover" data-section="Opening" data-minutes="0.5">
+  <div class="slide__body" style="justify-content:space-between">
+    <div class="lu-row" style="justify-content:space-between;align-items:flex-start">
+      <div class="lu-lockup">
+        <span class="lu-lockup__mark">LU</span>
+        <span class="lu-lockup__text">
+          <span class="lu-lockup__name">Lebanese University</span>
+        </span>
+      </div>
+      <div class="lu-tag lu-tag--red" style="background:transparent;color:#FF9AA7;border-color:#96122B">Team project defense · Topic: Grounding</div>
+    </div>
+    <div class="lu-stack">
+      <div class="lu-eyebrow">DATA SCIENCE FOR CONVERSATIONAL AI · Paper: RefusalBench, EACL 2026</div>
+      <h1 class="lu-display" style="max-width:24ch">Reading, Not Asking</h1>
+      <p class="lu-lead" style="max-width:46ch">Can a small language model's inner signal tell it when to refuse? A reproduction and two extensions.</p>
+    </div>
+    <div class="lu-row" style="justify-content:space-between;font-size:var(--lu-t-caption);color:var(--lu-on-night-2)">
+      <span>Abbass Zahreddine · MSc (M2), Faculty of Sciences · 12 minutes</span>
+      <span>Arrow keys to move · question mark for shortcuts</span>
+    </div>
+  </div>
+  <template data-notes>
+    <p><b>30 seconds.</b> Say who you are and give the whole story in three sentences, so the room knows where it is going.</p>
+    <p>"I reproduced a benchmark paper on free resources. I tested two ideas to help a small model refuse correctly. The first failed completely. The second finds a real signal inside the model, but it does not clearly beat the baseline. I will show the numbers and say exactly what they do and do not prove."</p>
+    <p>Do not read the title. If you are behind, this is the only slide you can shorten.</p>
+  </template>
+</section>
+
+<!-- ── 01 · THE PAPER AND ITS PROBLEM ────────────────────────────────────── -->
+<section class="slide" data-label="The paper and its problem" data-section="The paper" data-minutes="1.5">
+  <div class="lu-eyebrow">The paper · the problem</div>
+  <h2 class="lu-h2" style="max-width:76ch">A grounded model must say no when the evidence is bad.</h2>
+  <div class="lu-split lu-split--wide-left" style="margin-top:var(--lu-s4)">
+    <div class="lu-stack">
+      <div class="lu-card">
+        <span class="lu-card__label">The paper · peer reviewed</span>
+        <h3 class="lu-h3">RefusalBench: Generative Evaluation of Selective Refusal in Grounded Language Models</h3>
+        <p class="lu-sub">Muhamed, Ribeiro, Dreyer, Smith, Diab · Carnegie Mellon and Amazon · EACL 2026 · arXiv 2510.10390</p>
+      </div>
+      <ul class="lu-list lu-list--tight">
+        <li><b>Grounded</b> answering: the model may use only the passage we give it.</li>
+        <li><b>Selective refusal</b>: answer if the passage supports it, refuse if not, and name the reason.</li>
+      </ul>
+    </div>
+    <div class="lu-stack">
+      <div class="lu-callout lu-callout--neutral">
+        <span class="lu-callout__label">Original · clear</span>
+        <p class="lu-sub"><b>Q:</b> When did the East India Company take control of India?<br><b>Passage:</b> The East India Company gained a foothold in India in 1611.<br><b>Answer:</b> 1611</p>
+      </div>
+      <div class="lu-callout">
+        <span class="lu-callout__label">Perturbed · ambiguous</span>
+        <p class="lu-sub"><b>Q:</b> When did <em>the company</em> take control of India?<br><b>Passage adds:</b> The Dutch East India Company established posts in India.<br><b>Correct reply:</b> <code>REFUSE_AMBIGUOUS_QUERY</code></p>
+      </div>
+    </div>
+  </div>
+  <template data-notes>
+    <p><b>1.5 minutes. Answers the doctor's question "what is this paper and what problem does it solve".</b></p>
+    <p>Say: a retrieval system can find the right passage and still fail, because the passage is unclear or wrong. The safe behavior is to refuse, and to say why. The example is from Figure 1 of the paper: one small change to the question and passage turns an answerable question into one the model must refuse.</p>
+    <p><b>Likely question:</b> "Is this peer reviewed?" Yes, EACL 2026 long paper, pages 6811 to 6856, and the arXiv preprint is 2510.10390.</p>
+    <p>If behind: skip the card details and go straight to the two boxes on the right.</p>
+  </template>
+</section>
+
+<!-- ── 02 · THE PAPER'S METHOD AND FINDINGS ──────────────────────────────── -->
+<section class="slide" data-label="The paper's method and findings" data-section="The paper" data-minutes="1.75">
+  <div class="lu-eyebrow">The paper · how it measures, what it found</div>
+  <h2 class="lu-h2" style="max-width:76ch">It breaks good evidence on purpose, then tests two skills.</h2>
+  <div class="lu-split lu-split--wide-left" style="margin-top:var(--lu-s4)">
+    <div class="lu-stack">
+      <ul class="lu-pipeline">
+        <li data-state="done"><span class="lu-pipeline__n">01</span><span class="lu-pipeline__t">Start</span><span class="lu-pipeline__d">Natural Questions with a good passage</span></li>
+        <li data-state="done"><span class="lu-pipeline__n">02</span><span class="lu-pipeline__t">Break it</span><span class="lu-pipeline__d">176 rewrite rules, 6 failure types, 3 strengths</span></li>
+        <li data-state="done"><span class="lu-pipeline__n">03</span><span class="lu-pipeline__t">Check</span><span class="lu-pipeline__d">Several judge models must agree</span></li>
+        <li data-state="active"><span class="lu-pipeline__n">04</span><span class="lu-pipeline__t">Test</span><span class="lu-pipeline__d">1,600 examples: 536 answerable, 1,064 to refuse</span></li>
+      </ul>
+      <p class="lu-sub">Six failure types: <b>ambiguity</b>, <b>contradiction</b>, <b>missing information</b>, <b>false premise</b>, <b>wrong level of detail</b>, <b>opinion asked</b>.</p>
+    </div>
+    <div class="lu-stack">
+      <div class="lu-callout lu-callout--concept">
+        <span class="lu-callout__label">What the paper found</span>
+        <ul class="lu-list lu-list--tight">
+          <li>Best refusal accuracy on this set: <b>73.0%</b> (Claude 4 Sonnet).</li>
+          <li>On multi-document passages: <b>47.4%</b> at best.</li>
+          <li><b>Detecting</b> that a refusal is needed is easier than saying <b>why</b>.</li>
+        </ul>
+      </div>
+      <p class="lu-caption">Our model, Qwen1.5-7B-Chat: answer accuracy 56.1%, refusal accuracy about 5%.</p>
+    </div>
+  </div>
+  <template data-notes>
+    <p><b>1.75 minutes.</b> This is the paper's solution. Walk the four steps left to right and stop on step 4.</p>
+    <p>Key idea to say in your own words: the benchmark is <b>generated</b>, not collected. Models change the passage on purpose, so every example has a known correct reply. That is why we can score refusals without guessing.</p>
+    <p><b>Likely question:</b> "What is the difference between detecting and categorizing?" Detecting = should I refuse at all. Categorizing = which of the six reasons. The paper says models are better at the first than the second. Our extensions mostly target the first.</p>
+    <p><b>Numbers are from the paper itself</b> (73.0% and 47.4% from the introduction, Figure 5; 56.1% for Qwen 7B from the scaling section). Refusal accuracy for Qwen 7B is read from a small plot, so say "about".</p>
+    <p>If behind: drop the six failure types line; it is on the report.</p>
+  </template>
+</section>
+
+<!-- ── 03 · OUR BASELINE ─────────────────────────────────────────────────── -->
+<section class="slide" data-label="Our baseline reproduction" data-section="Baseline" data-minutes="2">
+  <div class="lu-eyebrow">Baseline · what we reproduced and what we changed</div>
+  <h2 class="lu-h2" style="max-width:76ch">We reproduced Qwen1.5-7B on free resources, and wrote down every change.</h2>
+  <div class="lu-split" style="margin-top:var(--lu-s4)">
+    <div class="lu-stack">
+      <table class="lu-table">
+        <thead><tr><th>Metric</th><th>Paper</th><th>Ours</th></tr></thead>
+        <tbody>
+          <tr><td>Answer accuracy</td><td>0.561</td><td><b>0.690</b></td></tr>
+          <tr><td>Refusal accuracy (exact reason)</td><td>about 0.05</td><td><b>0.114</b></td></tr>
+          <tr><td>Answerable questions refused</td><td>not given</td><td><b>0.165</b></td></tr>
+          <tr><td>Needed refusals missed</td><td>not given</td><td><b>0.456</b></td></tr>
+        </tbody>
+      </table>
+      <p class="lu-caption">Same finding as the paper: a 7B model almost never names the right reason.</p>
+    </div>
+    <div class="lu-stack">
+      <ul class="lu-list lu-list--tight">
+        <li>Same data and <b>same prompt</b> as the paper.</li>
+        <li>Qwen1.5-7B-Chat, <b>4-bit</b>, on a free Colab T4 GPU.</li>
+        <li>Judge: <b>Gemini</b> (the paper used Claude). Clean refusal codes are scored by code, the rest by the judge.</li>
+        <li>Sampling like the paper: temperature 1.0.</li>
+      </ul>
+      <div class="lu-callout">
+        <span class="lu-callout__label">Honest status</span>
+        <p class="lu-sub">1,560 of 1,600 replies generated (40 ran out of GPU memory). <b>770 graded so far.</b> Cost: $0.</p>
+      </div>
+    </div>
+  </div>
+  <template data-notes>
+    <p><b>2 minutes. This is the "code and reproduction" line of the rubric (25 points). Be exact.</b></p>
+    <p>Say: my numbers are higher than the paper's, but they are not comparable one to one, because the judge, the 4-bit model and the software are different. What matches is the story: refusal accuracy near the floor.</p>
+    <p><b>Likely question:</b> "Why is your answer accuracy higher?" A different judge (Gemini, not Claude), a quantized model and a different inference stack. I list these as deviations in the report. I do not claim my number beats the paper.</p>
+    <p><b>Likely question:</b> "Is the baseline complete?" No. 770 of 1,560 replies are graded because of the free judge quota (500 requests a day). The graded half was chosen by a seeded random shuffle, and the comparison script checks it is representative. A full run needs the rest graded.</p>
+    <p><b>Likely question:</b> "How do you know Gemini grades like Claude?" I do not yet. The 30-reply hand check is the planned validation and is listed as a limit.</p>
+    <p>"Refused" here includes any refusal code the judge returns. Two mistyped codes were mapped to the closest valid code.</p>
+  </template>
+</section>
+
+<!-- ── 04 · EXTENSION 1: A FAILURE ───────────────────────────────────────── -->
+<section class="slide" data-label="Extension 1, a failure" data-section="Extensions" data-minutes="1.75">
+  <div class="lu-eyebrow">Extension 1 · the limitation and an idea that failed</div>
+  <h2 class="lu-h2" style="max-width:76ch">Asking the model to diagnose first made it worse.</h2>
+  <div class="lu-split" style="margin-top:var(--lu-s4)">
+    <div class="lu-stack">
+      <ul class="lu-list lu-list--tight">
+        <li><b>The limitation:</b> the baseline misses 46% of needed refusals, mostly ambiguity (0.74) and contradiction (0.71).</li>
+        <li><b>The idea:</b> make the model write <code>EVIDENCE_STATE</code> first, then answer.</li>
+        <li><b>The control:</b> only ask for a final line, to rule out formatting.</li>
+      </ul>
+      <div class="lu-callout lu-callout--neutral">
+        <span class="lu-callout__label">What we claim</span>
+        <p class="lu-sub">We report the result. We did not test why it happens.</p>
+      </div>
+    </div>
+    <div class="lu-stack">
+      <table class="lu-table">
+        <thead><tr><th></th><th>Baseline</th><th>Control</th><th>Diagnose first</th></tr></thead>
+        <tbody>
+          <tr><td>Refusals caught (%)</td><td>43.3</td><td>35.8</td><td><b>1.9</b></td></tr>
+          <tr><td>Right reason (%)</td><td>6.8</td><td>3.3</td><td><b>0.0</b></td></tr>
+        </tbody>
+      </table>
+      <p class="lu-statement"><b>95%</b> of the time the model wrote CLEAR (762 of 800), even when it had to refuse.</p>
+    </div>
+  </div>
+  <template data-notes>
+    <p><b>1.75 minutes. Give the failure its full time: a clean negative result is worth marks under "result quality" and "honesty".</b></p>
+    <p>Say: this was my first idea, and I thought it would help. Once the model writes "CLEAR" it just answers. The control shows it is not a formatting problem: the control is also a little worse than the baseline, but nothing like this.</p>
+    <p><b>Numbers:</b> 776 examples common to all three runs, clean refusal codes only. The baseline and control figures are lower bounds because free text refusals are not counted (no judge was used here). The gap to the diagnose-first run is still huge: 1.9% against 43.3%.</p>
+    <p><b>Likely question:</b> "Why did it fail?" I do not know. "Anchoring on clear" is a description, not an explanation. I tested nothing about the mechanism.</p>
+    <p>This failure is the reason for Extension 2: if the model cannot be trusted to write the answer to "is the evidence clear", read what is inside it instead.</p>
+  </template>
+</section>
+
+<!-- ── 05 · EXTENSION 2: HOW WE BUILT IT ─────────────────────────────────── -->
+<section class="slide" data-label="Extension 2, how it works" data-section="Extensions" data-minutes="2">
+  <div class="lu-eyebrow">Extension 2 · the idea and how we built it</div>
+  <h2 class="lu-h2" style="max-width:76ch">Do not ask the model. Read it.</h2>
+  <div class="lu-grid" style="margin-top:var(--lu-s4)">
+    <div class="lu-card lu-col-4">
+      <span class="lu-card__label">S1 · refusal probability</span>
+      <h3 class="lu-h3">How likely is a refusal code?</h3>
+      <p class="lu-sub">The chance that the reply <b>starts</b> with a refusal code. No text is generated.</p>
+    </div>
+    <div class="lu-card lu-col-4">
+      <span class="lu-card__label">S2 · yes or no</span>
+      <h3 class="lu-h3">Can this be answered?</h3>
+      <p class="lu-sub">Ask a yes or no question. Compare the chance of "No" with the chance of "Yes".</p>
+    </div>
+    <div class="lu-card lu-col-4">
+      <span class="lu-card__label">S3 · linear probe</span>
+      <h3 class="lu-h3">What is inside?</h3>
+      <p class="lu-sub">A small classifier trained on the model's <b>hidden state</b>, its inner numbers.</p>
+    </div>
+  </div>
+  <ul class="lu-list lu-list--tight" style="margin-top:var(--lu-s4)">
+    <li><b>One rule for all:</b> refuse if the score is above a threshold.</li>
+    <li><b>Honest test:</b> thresholds and probe are tuned on other questions (5 folds over the 100 source questions).</li>
+    <li>About 0.3 seconds per example on a T4. No judge. $0.</li>
+  </ul>
+  <template data-notes>
+    <p><b>2 minutes. Rubric: code and reproduction, and motivation.</b></p>
+    <p>Say: three ways to read the same model. S1 and S2 are probabilities, S3 uses a small trained classifier. A <b>probe</b> is just a simple classifier that looks at the model's internal numbers. Higher score always means "refuse".</p>
+    <p><b>Why 5 folds over source questions?</b> The 1,600 examples are variants of only 100 questions. A random split would put variants of the same question in training and test, and the result would look better than it is. So an example's own question is never used to tune its threshold or train its probe. A unit test checks it.</p>
+    <p><b>Intervals:</b> resampling whole source questions, 2,000 times, seed 0. Honest limit: the fitting is not repeated inside each resample.</p>
+    <p><b>Likely question:</b> "Is the probe cheating? It sees the labels." It is trained with the benchmark's labels and the baseline is not, so I call it a diagnostic of what the hidden state contains, not an equal comparison.</p>
+    <p><b>Success rule fixed before the run:</b> signal if the lower end of S1's AUROC interval is above 0.5; gain if the tuned threshold beats the default with its interval above 0.</p>
+  </template>
+</section>
+
+<!-- ── 06 · EXTENSION 2: RESULTS ─────────────────────────────────────────── -->
+<section class="slide" data-label="Extension 2, results" data-section="Extensions" data-minutes="2.25">
+  <div class="lu-eyebrow">Extension 2 · results against the baseline</div>
+  <h2 class="lu-h2" style="max-width:76ch">The signal is real, but a simple threshold does not beat the baseline.</h2>
+  <div class="lu-split lu-split--wide-right" style="margin-top:var(--lu-s3)">
+    <div class="lu-stack">
+      <table class="lu-table">
+        <thead><tr><th>Readout</th><th>Signal</th><th>Decision</th><th>Vs baseline</th></tr></thead>
+        <tbody>
+          <tr><td><b>Baseline</b></td><td>none</td><td><b>0.690</b></td><td>reference</td></tr>
+          <tr><td>S1</td><td>0.726</td><td>0.658</td><td>slightly worse</td></tr>
+          <tr><td>S2</td><td>0.751</td><td>0.669</td><td>unclear</td></tr>
+          <tr><td>S3 probe</td><td><b>0.797</b></td><td><b>0.718</b></td><td>unclear</td></tr>
+        </tbody>
+      </table>
+      <p class="lu-caption"><b>Signal</b> = AUROC (0.5 coin flip, 1.0 perfect). <b>Decision</b> = balanced accuracy (0.5 chance). Probe gain: +0.028, interval includes 0.</p>
+      <div class="lu-callout">
+        <span class="lu-callout__label">Limits</span>
+        <p class="lu-sub">770 of 1,560 graded · judge unchecked · one seed</p>
+      </div>
+    </div>
+    <figure class="lu-figure">
+      <div class="lu-figure__frame"><img style="height:480px;width:100%;object-fit:contain" src="assets/img/tradeoff-baseline.png" alt="Curves of needed refusals missed against answerable questions refused for S1, S2 and S3, with the baseline as a diamond. The baseline sits near the S1 and S2 curves and just above the S3 curve."></div>
+    </figure>
+  </div>
+  <template data-notes>
+    <p><b>2.25 minutes. This is the "result quality" line of the rubric (25 points). Read the verdict out loud and do not oversell.</b></p>
+    <p>Say: the first column says the signal is real, all three are well above 0.5. The last column is what a deployed rule would do. A threshold on S1 or S2 does not beat just letting the model answer. The probe has the best number, +0.028 balanced accuracy, but its interval is -0.014 to +0.065, which includes zero, so I cannot claim an improvement.</p>
+    <p><b>The picture:</b> lower left is better. The diamond is the baseline. It sits near the S1 and S2 curves and just above the probe's, so the model's own free text decisions already use about as much of the signal as a global threshold can.</p>
+    <p><b>Per class (all rules on the same 770 examples):</b> the probe and S2 cut missed contradictions from 0.71 to 0.19 and 0.23, but refuse more answerable questions (0.17 to 0.29 and 0.50). So the overall number hides a trade-off.</p>
+    <p><b>Hostile question:</b> "Your baseline depends on an unvalidated Gemini judge for 64% of replies, while your rules are scored against labels. Why trust the comparison?" Answer: treat it as provisional. I compare on the same 770 examples with source clustered intervals, I claim no winner, and the two outstanding steps are grading all 1,560 replies and the 30 reply hand check.</p>
+    <p><b>What a full run needs:</b> all 1,560 graded (about two more short runs on the free quota), the judge check, more seeds and models. Cost stays near $0.</p>
+  </template>
+</section>
+
+<!-- ── 07 · REFERENCES ───────────────────────────────────────────────────── -->
+<section class="slide" data-label="References" data-section="Closing" data-minutes="0">
+  <div class="lu-eyebrow">References</div>
+  <div class="lu-split">
+    <ul class="lu-list lu-list--tight">
+      <li>Muhamed et al. <b>RefusalBench.</b> EACL 2026, arXiv 2510.10390.</li>
+      <li>Bai et al. <b>Qwen Technical Report.</b> arXiv 2309.16609, 2023.</li>
+      <li>Kwiatkowski et al. <b>Natural Questions.</b> TACL 7, 2019.</li>
+      <li>Kadavath et al. <b>LMs (Mostly) Know What They Know.</b> arXiv 2207.05221.</li>
+      <li>Burns et al. <b>Discovering Latent Knowledge.</b> ICLR 2023.</li>
+      <li>Azaria and Mitchell. <b>The Internal State of an LLM Knows When It's Lying.</b> arXiv 2304.13734.</li>
+      <li>Alain and Bengio. <b>Linear Classifier Probes.</b> arXiv 1610.01644.</li>
+    </ul>
+    <ul class="lu-list lu-list--tight">
+      <li>Yin et al. <b>Do LLMs Know What They Don't Know?</b> Findings of ACL 2023.</li>
+      <li>Zhang et al. <b>R-Tuning.</b> NAACL 2024.</li>
+      <li>Asai et al. <b>Self-RAG.</b> arXiv 2310.11511, 2023.</li>
+      <li>Geifman and El-Yaniv. <b>Selective Classification for Deep Neural Networks.</b> 2017.</li>
+      <li>Zheng et al. <b>Judging LLM-as-a-Judge.</b> NeurIPS 2023.</li>
+      <li>Cameron, Gelbach, Miller. <b>Clustered errors bootstrap.</b> REStat 2008.</li>
+      <li><b>Code, data, report:</b> github.com/aidepartmentrah-pixel/refusalbench-reproduction</li>
+    </ul>
+  </div>
+  <template data-notes>
+    <p>No time budget. Leave this up during questions. The full list of 20 references is in the IEEE format report. Related follow-up work on the same topic: Yin et al. (recognizing unanswerable questions), R-Tuning (training a model to say it does not know) and Self-RAG (a model that critiques its own retrieval). All three change the model by fine-tuning; our extension keeps the weights fixed and reads signals it already produces.</p>
+  </template>
+</section>
+
+</div><!-- /stage -->
+</div><!-- /deck -->
+
+<script src="assets/lu-deck.js?v=1.3.0" defer></script>
+</body>
+</html>
