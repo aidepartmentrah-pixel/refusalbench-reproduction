@@ -45,7 +45,7 @@ All intervals exclude zero.
 
 ## Why it failed
 
-Qwen wrote `EVIDENCE_STATE: CLEAR` on **762 of 800 examples (95%)**, including almost every example that should be refused (for example 89 of 92 false-premise and 68 of 69 ambiguous cases). It then answered normally. Only about 4% of replies named a real non-CLEAR state, and some of those were malformed (`C`, `CLARITY`, `_CLEAR`). Even if every non-CLEAR reply were a perfect refusal, the ceiling would be about 5%.
+Qwen wrote `EVIDENCE_STATE: CLEAR` on **762 of 800 examples (95%)**, including almost every example that should be refused (for example 89 of 93 false-premise and 68 of 69 ambiguous cases). It then answered normally. Only 7 replies (0.9%) named a valid non-CLEAR state, and another 31 had a missing or malformed state (`C`, `CLARITY`, `_CLEAR`). Even if every non-CLEAR reply were a perfect refusal, the ceiling would be 38 of 800, about 5%.
 
 The format-only control also did not beat the baseline, so formatting alone does not explain the failure. The diagnosis step is what made Qwen commit to "the evidence is fine".
 
