@@ -18,14 +18,14 @@
 
 \title{Reading, Not Asking: Probing a Small Language Model's Signal for Selective Refusal in Grounded Question Answering}
 
-\author{\IEEEauthorblockN{\todo{Author name}}
-\IEEEauthorblockA{\todo{Department, Lebanese University, Faculty of Sciences (MSc)} \\
+\author{\IEEEauthorblockN{Abbass Zahreddine}
+\IEEEauthorblockA{Master of Research (M2), Faculty of Sciences, Lebanese University \\
 \todo{email}}}
 
 \maketitle
 
 \begin{abstract}
-A grounded language model should answer only when the supplied evidence supports an answer, and refuse otherwise. RefusalBench measures this selective refusal and reports that small models rarely identify the correct reason for refusing. We reproduce its single-document benchmark (RefusalBench-NQ, 1{,}600 examples) with Qwen1.5-7B-Chat on a free-tier GPU and test two extensions. First, asking the model to write an evidence-state diagnosis before answering fails: it declares the evidence clear in 95\% of cases and almost never refuses, which is worse than the baseline. Second, we stop trusting the model's text and read its internal signal in a single forward pass: the probability that its reply opens with a refusal code, a yes/no sufficiency probability, and a linear probe on its hidden state. All three separate refusal-required from answerable examples well above chance (AUROC 0.73, 0.75 and 0.80). Against the baseline judged by Gemini, however, thresholding these probabilities gives no clear gain (balanced accuracy 0.66--0.67 versus 0.69), and the supervised probe is only slightly higher (0.72; difference $+0.03$, 95\% CI $[-0.01,+0.07]$). A small model's knowledge of when to refuse is present in its states, but simple readouts do not yet exploit it reliably. Code and per-example scores are released.
+A grounded language model should answer only when the supplied evidence supports an answer, and refuse otherwise. RefusalBench measures this selective refusal and reports that small models rarely identify the correct reason for refusing. We reproduce its single-document benchmark (RefusalBench-NQ, 1{,}600 examples) with Qwen1.5-7B-Chat on a free-tier GPU and test two extensions. First, asking the model to write an evidence-state diagnosis before answering fails: it declares the evidence clear in 95\% of cases and almost never refuses, which is worse than the baseline. Second, we stop trusting the model's text and read its internal signal without generating any text: the probability that its reply opens with a refusal code, a yes/no sufficiency probability, and a linear probe on its hidden state. All three separate refusal-required from answerable examples above chance (AUROC 0.73, 0.75 and 0.80). Against the baseline judged by Gemini, however, thresholding these probabilities gives no clear gain (balanced accuracy 0.66--0.67 versus 0.69), and the supervised probe is only slightly higher (0.72; difference $+0.03$, 95\% CI $[-0.01,+0.07]$). Information predictive of whether a refusal is required is present in the model's scores and hidden states, but simple readouts do not yet exploit it reliably. Code and per-example scores are released.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -48,6 +48,8 @@ We frame this as a lightweight study of one model, not a general solution; Secti
 
 \textbf{What models know about themselves.} Large language models can be well calibrated about whether they know an answer when asked in the right format \cite{kadavath2022language}. Linear classifier probes \cite{alain2016understanding} read information from intermediate layers; truthfulness signals have been recovered from hidden states with and without supervision \cite{burns2023discovering,azaria2023internal}. We apply the same idea to a different target: whether the \emph{evidence} supports answering.
 
+\textbf{Abstention in language models.} Recent work asks whether language models recognize questions they cannot answer \cite{yin2023know}, trains them to say ``I don't know'' for questions beyond their knowledge \cite{zhang2024rtuning}, or trains a model to critique its own retrieval and generation \cite{asai2023selfrag}. These methods change the model by fine-tuning; we keep the weights fixed and read signals the model already produces.
+
 \textbf{Selective prediction.} A classifier can abstain when its confidence is below a threshold, trading coverage for risk \cite{geifman2017selective}, and confidence is only useful if calibrated \cite{guo2017calibration}. Our threshold gate is selective prediction with the model's own refusal probability as the confidence.
 
 \section{Task, Data and Metrics}
@@ -65,7 +67,7 @@ the balanced accuracy, where 0.5 is chance, and the F1 score of the ``refuse'' c
 
 \textbf{Reply format.} Only 528 of the 1{,}560 replies (34\%) are a clean refusal code; 991 (64\%) are free text. The judge therefore carries most of the scoring, and any method that reads only the code understates the model's refusals.
 
-\textbf{Results.} Table~\ref{tab:baseline} gives the baseline on the 770 replies graded so far (a random half; grading order is shuffled, and it is limited by the free judge quota) \todo{update with all 1{,}560 graded replies}. Our answer accuracy is higher than the published 0.561 and refusal accuracy is low in both, as expected for a 7B model; the exact values differ because of the judge, quantization and inference-stack changes. The baseline misses most refusals for ambiguity (0.74) and contradiction (0.71) but few for false premise (0.19), granularity mismatch (0.25) and epistemic mismatch (0.30), and it over-refuses false-premise-class answerable examples (FRR 0.33).
+\textbf{Results.} Table~\ref{tab:baseline} gives the baseline on the 770 replies graded so far (a random half; grading order is shuffled, and it is limited by the free judge quota) \todo{update with all 1{,}560 graded replies}. Our measured answer accuracy is 0.690 against the published 0.561, but the two are not directly comparable because the judge, quantization and inference stack differ; refusal accuracy is low in both, as expected for a 7B model. The baseline misses most refusals for ambiguity (0.74) and contradiction (0.71) but few for false premise (0.19), granularity mismatch (0.25) and epistemic mismatch (0.30), and it over-refuses false-premise-class answerable examples (FRR 0.33).
 
 \begin{table}[t]
 \centering
@@ -132,7 +134,7 @@ False refusal (\%) & 15.4 & 7.7 & 0.4 \\
 
 \section{Extension 2: Reading the Refusal Signal}
 \label{sec:n2}
-\textbf{Idea.} Instead of reading what the model writes, read how likely it is to refuse. We use one forward pass per example with no text generation and three scorers; higher always means ``refuse''. A decision is ``refuse iff the score exceeds a threshold $\tau$'' (Fig.~\ref{fig:overview}).
+\textbf{Idea.} Instead of reading what the model writes, read how likely it is to refuse. We generate no text: each score comes from one forward pass per example and prompt (the baseline prompt for S1, a second prompt for S2; S3 reads the hidden states of either pass). There are three scorers, and higher always means ``refuse''. A decision is ``refuse iff the score exceeds a threshold $\tau$'' (Fig.~\ref{fig:overview}).
 
 \begin{figure}[t]
 \centering
@@ -148,7 +150,7 @@ False refusal (\%) & 15.4 & 7.7 & 0.4 \\
 \draw[arr] (in) -- (m);
 \foreach \n in {s1,s2,s3}{\draw[arr] (m) -- (\n); \draw[arr] (\n) -- (d);}
 \end{tikzpicture}}
-\caption{Extension 2: no text is generated. One forward pass gives three scores; a threshold $\tau$ (or the probe) turns each into an answer-or-refuse decision, with $\tau$ chosen on other source questions.}
+\caption{Extension 2: no text is generated. Each score comes from a single forward pass under its own prompt; a threshold $\tau$ (or the probe) turns each into an answer-or-refuse decision, with $\tau$ chosen on other source questions.}
 \label{fig:overview}
 \end{figure}
 
@@ -156,16 +158,16 @@ False refusal (\%) & 15.4 & 7.7 & 0.4 \\
 \begin{equation}
 p_{\text{ref}}(x)=\sum_{w}\prod_{t=1}^{|v_w|}P\!\left(v_{w,t}\mid x,v_{w,<t}\right),\quad s_1=\log\frac{p_{\text{ref}}}{1-p_{\text{ref}}}.
 \end{equation}
-The default threshold is $p_{\text{ref}}=0.5$ ($s_1=0$), what the model does on its own; the wrapped forms account for about 30\% of the baseline's coded refusals. The cached scoring was checked against a cache-free reference on a tiny random model (maximum difference $10^{-6}$).
+We use $p_{\text{ref}}=0.5$ ($s_1=0$) as the natural untuned threshold; it does not reproduce the sampled baseline policy exactly, which also produces free-text refusals. The wrapped forms account for about 30\% of the baseline's coded refusals. The cached scoring was checked against a cache-free reference on a tiny random model (maximum difference $10^{-6}$).
 
 \textbf{S2: sufficiency probability.} A second prompt asks whether the query can be answered completely and faithfully from the passage, ``Yes or No''; $s_2=\log P(\text{No})-\log P(\text{Yes})$ over the first token (mean probability mass on the two words: 1.0).
 
-\textbf{S3: hidden-state probe.} A logistic regression on the last-token hidden state (final and middle layer, under either prompt), after standardization and PCA to 128 dimensions. It is \emph{supervised} with the benchmark's labels, unlike the baseline.
+\textbf{S3: hidden-state probe.} A logistic regression on the last-token hidden state (final and middle layer, under either prompt), after standardization and PCA to 128 dimensions. It is \emph{supervised} with the benchmark's labels, unlike the baseline, so we treat it as a diagnostic of what the hidden state encodes, not as an equal-training-condition replacement for the baseline.
 
-\textbf{Protocol.} All 100 source questions occur in any random half of the data, so tuning on one half and testing on the other would leak source questions. We instead cross-fit over source questions (5 folds): an example's own source question is never in the data used to choose its threshold (maximizing BA) or to fit its probe, whose layer and regularization are chosen by an inner grouped cross-validation. Held-out decisions are pooled for evaluation. The success rule was fixed before the run: the signal check requires the lower end of S1's AUROC interval to exceed 0.5, and the gate check requires the tuned-minus-default BA interval to lie above 0. Scoring takes about 0.3 s per example and prompt on a T4 (about 8 minutes per pass over the 1{,}600 examples), needs no judge and no API key, and costs nothing on the free tier.
+\textbf{Protocol.} All 100 source questions occur in any random half of the data, so tuning on one half and testing on the other would leak source questions. We instead cross-fit over source questions (5 folds): an example's own source question is never in the data used to choose its threshold (maximizing BA) or to fit its probe, whose layer and regularization are chosen by an inner grouped cross-validation. Held-out decisions are pooled for evaluation. The success rule was fixed before the run: the signal check requires the lower end of S1's AUROC interval to exceed 0.5, and the gate check requires the tuned-minus-default BA interval to lie above 0. For comparisons with the judged baseline, a rule is BETTER if the paired 95\% interval of its BA difference lies entirely above zero, WORSE if entirely below zero, and has NO CLEAR DIFFERENCE otherwise. Intervals resample source questions of the pooled held-out predictions; fitting is not repeated inside each resample, so they reflect sampling of the evaluation examples, not variability of the fitted thresholds or probe. A unit test confirms that a fold's threshold does not change when that fold's own labels are corrupted. Scoring takes about 0.3 s per example and prompt on a T4 (about 8 minutes per pass over the 1{,}600 examples), needs no judge and no API key, and costs nothing on the free tier.
 
 \subsection{Does the signal exist?}
-Table~\ref{tab:n2} shows that all three scorers separate refusal-required from answerable examples far above chance on all 1{,}600 examples. The probe is best; S2 is slightly better than S1 (S1 minus S2: $-0.025$, 95\% CI $[-0.047,-0.003]$), and the probe beats S1 by $+0.071$ $[+0.041,+0.102]$. Figure~\ref{fig:dist} shows the S1 score for the two groups: they overlap but are clearly shifted. The probe chose a middle-layer state in four of the five folds (three under the baseline prompt, one under the yes/no prompt) and the final-layer state of the yes/no prompt in the fifth. Tuning a threshold on S1 moves the operating point (MRR 0.59 to 0.41, FRR 0.10 to 0.26) but does not significantly improve balanced accuracy over the default (+0.015, $[-0.008,+0.036]$): it slides along one trade-off curve. The probe is better than the tuned S1 gate by $+0.053$ $[+0.024,+0.081]$.
+Table~\ref{tab:n2} shows that all three scorers separate refusal-required from answerable examples above chance on all 1{,}600 examples (lower interval bounds 0.70 and above). The probe is best; S2 is slightly better than S1 (S1 minus S2: $-0.025$, 95\% CI $[-0.047,-0.003]$), and the probe beats S1 by $+0.071$ $[+0.041,+0.102]$. Figure~\ref{fig:dist} shows the S1 score for the two groups: they overlap but are clearly shifted. The probe chose a middle-layer state in four of the five folds (three under the baseline prompt, one under the yes/no prompt) and the final-layer state of the yes/no prompt in the fifth. Tuning a threshold on S1 moves the operating point (MRR 0.59 to 0.41, FRR 0.10 to 0.26) but does not significantly improve balanced accuracy over the default (+0.015, $[-0.008,+0.036]$): it slides along one trade-off curve. The probe is better than the tuned S1 gate by $+0.053$ $[+0.024,+0.081]$.
 
 \begin{table}[t]
 \centering
@@ -175,15 +177,15 @@ Table~\ref{tab:n2} shows that all three scorers separate refusal-required from a
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{lccccc}
 \toprule
-Scorer / rule & AUROC & FRR & MRR & BA & F1 \\
+Scorer / rule & AUROC [95\% CI] & FRR & MRR & BA & F1 \\
 \midrule
-S1 refusal prob. & .726 & & & & \\
+S1 refusal prob. & .726 [.699, .752] & & & & \\
 \quad default ($p>0.5$) & & .103 & .590 & .654 & .561 \\
 \quad tuned threshold & & .256 & .408 & .668 & .688 \\
-S2 yes/no prob. & .751 & & & & \\
+S2 yes/no prob. & .751 [.723, .777] & & & & \\
 \quad default (No $>$ Yes) & & .125 & .540 & .667 & .604 \\
 \quad tuned threshold & & .321 & .329 & .675 & .732 \\
-S3 hidden-state probe & .797 & .250 & .307 & \textbf{.721} & .762 \\
+S3 hidden-state probe & .797 [.770, .825] & .250 & .307 & \textbf{.721} & .762 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -196,7 +198,7 @@ S3 hidden-state probe & .797 & .250 & .307 & \textbf{.721} & .762 \\
 \end{figure}
 
 \subsection{Is it better than the baseline?}
-The fair comparison scores the judged baseline replies and the new decision rules on the same examples (Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp}). A baseline reply counts as a refusal when the judge classifies it as any refusal code. On the 770 graded examples the baseline reaches BA 0.688 (95\% CI $[0.654,0.722]$), higher than the 0.64 obtained by counting only clean codes, which illustrates how much a code-only reading understates it. The label-free default thresholds do not beat it, and S1's default is slightly worse ($-0.029$, $[-0.056,-0.002]$). The tuned thresholds and S2 are indistinguishable from it. The probe is the only candidate: BA 0.718, a difference of $+0.030$ with an interval that includes zero, $[-0.012,+0.067]$. It misses fewer refusals (MRR 0.29 versus 0.46) at the price of more false refusals (0.28 versus 0.17). Figure~\ref{fig:cmp} shows the baseline's operating point lying on the S1 and S2 curves and just above the probe's: the model's free-text decisions already use about as much of the signal as a threshold on its probability can recover. \todo{re-run with all 1{,}560 baseline replies graded and update Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp} and this paragraph}
+The fair comparison scores the judged baseline replies and the new decision rules on the same examples (Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp}). A baseline reply counts as a refusal when the judge classifies it as any refusal code. Because 64\% of baseline replies are free text and depend on the Gemini judge, whereas the new rules are scored directly against the benchmark's labels, differences of a few BA points are provisional until judge agreement is validated. On the 770 graded examples the baseline reaches BA 0.688 (95\% CI $[0.654,0.722]$), higher than the 0.64 obtained by counting only clean codes, which illustrates how much a code-only reading understates it. The label-free default thresholds do not beat it, and S1's default is slightly worse ($-0.029$, $[-0.056,-0.002]$); with five comparisons and no multiplicity correction this nominal result is not robust. The tuned thresholds and S2 are indistinguishable from it. The probe is the only candidate: BA 0.718, a difference of $+0.030$ with an interval that includes zero, $[-0.012,+0.067]$. S3 uses the benchmark's labels during training and the baseline does not, so this is not a comparison under equal training conditions. It misses fewer refusals (MRR 0.29 versus 0.46) at the price of more false refusals (0.28 versus 0.17). Figure~\ref{fig:cmp} shows the baseline's operating point close to the S1 and S2 trade-off curves and just above the probe's, consistent with limited room for improvement from a global threshold alone; this is a visual observation, not a statistical test. \todo{re-run with all 1{,}560 baseline replies graded and update Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp} and this paragraph}
 
 \begin{table}[t]
 \centering
@@ -226,11 +228,11 @@ S3 probe & .718 & $+.030$ [$-.012$, $+.067$] & yes & unclear \\
 \end{figure}
 
 \subsection{Where does each rule help?}
-Table~\ref{tab:type} breaks the decisions down by perturbation class. The three readouts behave differently. S1 shares the baseline's profile: it still misses 67\% of ambiguity and 63\% of contradiction refusals. S2 and the probe cut contradiction misses from 0.71 (baseline) to 0.26 and 0.22, and ambiguity misses from 0.74 to 0.54 and 0.47, but they pay with more false refusals on answerable examples of those classes (contradiction 0.17 to 0.44 and 0.30). The probe is the only rule that lowers the false-premise false-refusal rate (0.20 against 0.49--0.54 for S1 and S2) but it misses more false-premise refusals than the baseline (0.28 against 0.19) and over-refuses granularity-mismatch examples (0.38 against 0.10). The overall BA of the probe therefore hides large class-dependent trade-offs.
+Table~\ref{tab:type} breaks the decisions down by perturbation class, with every rule scored on the same 770 examples. The three readouts behave differently. S1 shares the baseline's profile: it still misses 66\% of ambiguity and 63\% of contradiction refusals. S2 and the probe cut contradiction misses from 0.71 (baseline) to 0.23 and 0.19, and ambiguity misses from 0.74 to 0.55 and 0.45, but pay with more false refusals on answerable examples of those classes (contradiction 0.17 to 0.50 and 0.29). The probe is the only rule that lowers the false-premise false-refusal rate below the baseline's (0.23 against 0.33; S1 and S2: 0.50 and 0.47), but it misses more false-premise refusals (0.25 against 0.19) and over-refuses granularity-mismatch examples (0.35 against 0.10). The overall BA of the probe therefore hides large class-dependent trade-offs. With 40 to 93 examples per cell, these class-level numbers are descriptive.
 
 \begin{table}[t]
 \centering
-\caption{Missed / false refusal rate by perturbation class. Baseline: 770 graded examples; other columns: all 1{,}600 examples at the thresholds that maximize overall BA. Lower is better in both entries.}
+\caption{Missed / false refusal rate by perturbation class, all rules on the same 770 graded examples (thresholds as in Table~\ref{tab:n2}). Lower is better in both entries.}
 \label{tab:type}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -238,29 +240,29 @@ Table~\ref{tab:type} breaks the decisions down by perturbation class. The three 
 \toprule
 Class & Baseline & S1 tuned & S2 tuned & S3 probe \\
 \midrule
-Ambiguity & .74/.09 & .67/.14 & .54/.27 & .47/.23 \\
-Contradiction & .71/.17 & .63/.21 & .26/.44 & .22/.30 \\
-Missing information & .56/.22 & .53/.27 & .58/.25 & .56/.21 \\
-Epistemic mismatch & .30/.12 & .22/.13 & .26/.14 & .13/.17 \\
-False premise & .19/.33 & .22/.54 & .17/.49 & .28/.20 \\
-Granularity mismatch & .25/.10 & .23/.20 & .22/.30 & .23/.38 \\
+Ambiguity & .74/.09 & .66/.11 & .55/.21 & .45/.23 \\
+Contradiction & .71/.17 & .63/.24 & .23/.50 & .19/.29 \\
+Missing information & .56/.22 & .51/.39 & .49/.34 & .53/.37 \\
+Epistemic mismatch & .30/.12 & .19/.14 & .30/.19 & .12/.19 \\
+False premise & .19/.33 & .20/.50 & .16/.47 & .25/.23 \\
+Granularity mismatch & .25/.10 & .19/.23 & .25/.33 & .19/.35 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \section{Discussion}
-\textbf{Asking fails, reading works somewhat.} Prompting a 7B model to reason about the evidence before acting produced its worst behavior, while the same model's probabilities and hidden states already separate the two groups with AUROC up to 0.80. The information about whether to refuse is present; the failure is in what the model is willing to write. We did not test why the model anchors on ``clear'', so we make no mechanistic claim.
+\textbf{Asking fails, reading works somewhat.} Prompting a 7B model to reason about the evidence before acting produced its worst behavior, while the same model's probabilities and hidden states separate the two groups with AUROC up to 0.80. Refusal-required status is therefore more separable in the model's scores and hidden states than in its generated decisions. We do not establish why this gap occurs, and we did not test why the model anchors on ``clear'', so we make no mechanistic claim.
 
-\textbf{Where it works and where it does not.} All methods catch epistemic mismatch, false premise and granularity mismatch reasonably well (MRR about 0.13--0.30). Ambiguity, contradiction and missing information are the hard classes: S1 and the baseline miss most of them, whereas S2 and the probe recover many contradictions and ambiguities, but only by refusing more answerable examples. The false-premise class is over-refused by S1 and S2 (FRR 0.54 and 0.49). Because the best threshold differs by class, a single global threshold is a blunt instrument; whether class-aware thresholds would help is an open question we did not test, and with one seed and 100 source questions the per-class numbers are descriptive, not tested.
+\textbf{Where it works and where it does not.} On refusal-required examples, MRR is relatively low for epistemic mismatch, false premise and granularity mismatch (0.12--0.30 across rules), although several rules incur a high FRR on the corresponding answerable examples. Ambiguity, contradiction and missing information are the hard classes: S1 and the baseline miss about half or more of them, whereas S2 and the probe recover many contradictions and ambiguities, but only by refusing more answerable examples. The false-premise class is over-refused by S1 and S2 (FRR 0.50 and 0.47). Because the best threshold differs by class, a single global threshold is a blunt instrument; whether class-aware thresholds would help is an open question we did not test, and with one seed and 100 source questions the per-class numbers are descriptive, not tested.
 
-\textbf{What this suggests.} Reading a refusal probability through a threshold is not an improvement over letting the model answer; a supervised probe is a plausible but small one. Our result is compatible with the view that selective refusal in small models is limited by how the knowledge is expressed rather than by its absence, but it does not establish it.
+\textbf{What this suggests.} Reading a refusal probability through a threshold is not an improvement over letting the model answer; a supervised probe shows a small positive point estimate but no clear improvement. Our result is compatible with the view that selective refusal in small models is limited by how refusal-relevant information is expressed rather than by its absence from the model's states, but it does not establish it.
 
 \section{Limitations}
 \label{sec:limits}
-(i) One model, one benchmark, one seed, 4-bit weights, sampling at temperature 1.0. (ii) The judge is Gemini, not the original Claude, and has not yet been validated by our planned 30-reply hand check. (iii) The baseline comparison currently uses half of the graded replies, and the 40 failed examples are excluded. (iv) The probe is supervised and trained on the same 100 source questions' distribution; cross-fitting prevents source overlap but not distribution shift. (v) S1 reads only openings that start with a refusal code, so free-text refusals look like answers to it. (vi) We measure detection, not the reason for refusing and not answer correctness for the new rules. (vii) We compare five rules with 95\% intervals and no multiplicity correction, so the one ``worse'' verdict (S1 default, upper bound $-0.002$) is not robust to such a correction.
+(i) One model, one benchmark, one seed, 4-bit weights, sampling at temperature 1.0. (ii) The judge is Gemini, not the original Claude, and has not yet been validated by our planned 30-reply hand check. Because most baseline replies depend on the judge while the new rules do not, this is the most important threat to the comparison in Table~\ref{tab:cmp}. (iii) The baseline comparison currently uses half of the graded replies, and the 40 failed examples are excluded. (iv) The probe is supervised and trained on the same 100 source questions' distribution; cross-fitting prevents source overlap but not distribution shift. (v) S1 reads only openings that start with a refusal code, so free-text refusals look like answers to it. (vi) We measure detection, not the reason for refusing and not answer correctness for the new rules. (vii) We compare five rules with 95\% intervals and no multiplicity correction, so the one ``worse'' verdict (S1 default, upper bound $-0.002$) is not robust to such a correction.
 
 \section{Conclusion}
-We reproduced the RefusalBench-NQ baseline for Qwen1.5-7B-Chat on free resources, showed that making the model diagnose the evidence before answering backfires, and showed that its internal refusal signal is strong (AUROC 0.73--0.80) yet only weakly exploitable: thresholding it does not beat the baseline and a supervised probe is at best slightly better. Future work should complete the judged baseline comparison, validate the judge, repeat the study on more models and seeds, and test readouts that target the hard classes, ambiguity and contradiction. The code, configurations and per-example scores are at \url{https://github.com/aidepartmentrah-pixel/refusalbench-reproduction}.
+We reproduced the RefusalBench-NQ baseline for Qwen1.5-7B-Chat on free resources, showed that making the model diagnose the evidence before answering backfires, and showed that refusal-required status is readable from its internal signal (AUROC 0.73--0.80) yet only weakly exploitable: thresholding it does not beat the baseline and a supervised probe is at best slightly better. Future work should complete the judged baseline comparison, validate the judge, repeat the study on more models and seeds, and test readouts that target the hard classes, ambiguity and contradiction. The code, configurations and per-example scores are at \url{https://github.com/aidepartmentrah-pixel/refusalbench-reproduction}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
