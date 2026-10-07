@@ -14,13 +14,14 @@
 % Visible marker for anything the authors must still fill in or update.
 \newcommand{\todo}[1]{{\color{red}[TODO: #1]}}
 
+% TO UPDATE when the baseline is fully graded (770 of 1,560 now): Abstract, Table I, Table V, Fig. 3, Table VI, Sec. VI-B/C, Limitations (iii).
 \begin{document}
 
 \title{Reading, Not Asking: Probing a Small Language Model's Signal for Selective Refusal in Grounded Question Answering}
 
 \author{\IEEEauthorblockN{Abbass Zahreddine}
 \IEEEauthorblockA{Master of Research (M2), Faculty of Sciences, Lebanese University \\
-\todo{email}}}
+abbasszahreddine@gmail.com}}
 
 \maketitle
 
@@ -67,7 +68,7 @@ the balanced accuracy, where 0.5 is chance, and the F1 score of the ``refuse'' c
 
 \textbf{Reply format.} Only 528 of the 1{,}560 replies (34\%) are a clean refusal code; 991 (64\%) are free text. The judge therefore carries most of the scoring, and any method that reads only the code understates the model's refusals.
 
-\textbf{Results.} Table~\ref{tab:baseline} gives the baseline on the 770 replies graded so far (a random half; grading order is shuffled, and it is limited by the free judge quota) \todo{update with all 1{,}560 graded replies}. Our measured answer accuracy is 0.690 against the published 0.561, but the two are not directly comparable because the judge, quantization and inference stack differ; refusal accuracy is low in both, as expected for a 7B model. The baseline misses most refusals for ambiguity (0.74) and contradiction (0.71) but few for false premise (0.19), granularity mismatch (0.25) and epistemic mismatch (0.30), and it over-refuses false-premise-class answerable examples (FRR 0.33).
+\textbf{Results.} Table~\ref{tab:baseline} gives the baseline on the 770 replies graded so far (a random half; grading order is shuffled, and it is limited by the free judge quota). Our measured answer accuracy is 0.690 against the published 0.561, but the two are not directly comparable because the judge, quantization and inference stack differ; refusal accuracy is low in both, as expected for a 7B model. The baseline misses most refusals for ambiguity (0.74) and contradiction (0.71) but few for false premise (0.19), granularity mismatch (0.25) and epistemic mismatch (0.30), and it over-refuses false-premise-class answerable examples (FRR 0.33).
 
 \begin{table}[t]
 \centering
@@ -198,7 +199,7 @@ S3 hidden-state probe & .797 [.770, .825] & .250 & .307 & \textbf{.721} & .762 \
 \end{figure}
 
 \subsection{Is it better than the baseline?}
-The fair comparison scores the judged baseline replies and the new decision rules on the same examples (Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp}). A baseline reply counts as a refusal when the judge classifies it as any refusal code. Because 64\% of baseline replies are free text and depend on the Gemini judge, whereas the new rules are scored directly against the benchmark's labels, differences of a few BA points are provisional until judge agreement is validated. On the 770 graded examples the baseline reaches BA 0.688 (95\% CI $[0.654,0.722]$), higher than the 0.64 obtained by counting only clean codes, which illustrates how much a code-only reading understates it. The label-free default thresholds do not beat it, and S1's default is slightly worse ($-0.029$, $[-0.056,-0.002]$); with five comparisons and no multiplicity correction this nominal result is not robust. The tuned thresholds and S2 are indistinguishable from it. The probe is the only candidate: BA 0.718, a difference of $+0.030$ with an interval that includes zero, $[-0.012,+0.067]$. S3 uses the benchmark's labels during training and the baseline does not, so this is not a comparison under equal training conditions. It misses fewer refusals (MRR 0.29 versus 0.46) at the price of more false refusals (0.28 versus 0.17). Figure~\ref{fig:cmp} shows the baseline's operating point close to the S1 and S2 trade-off curves and just above the probe's, consistent with limited room for improvement from a global threshold alone; this is a visual observation, not a statistical test. \todo{re-run with all 1{,}560 baseline replies graded and update Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp} and this paragraph}
+The fair comparison scores the judged baseline replies and the new decision rules on the same examples (Table~\ref{tab:cmp}, Fig.~\ref{fig:cmp}). A baseline reply counts as a refusal when the judge classifies it as any refusal code. Because 64\% of baseline replies are free text and depend on the Gemini judge, whereas the new rules are scored directly against the benchmark's labels, differences of a few BA points are provisional until judge agreement is validated. On the 770 graded examples the baseline reaches BA 0.688 (95\% CI $[0.654,0.722]$), higher than the 0.64 obtained by counting only clean codes, which illustrates how much a code-only reading understates it. The label-free default thresholds do not beat it, and S1's default is slightly worse ($-0.029$, $[-0.056,-0.002]$); with five comparisons and no multiplicity correction this nominal result is not robust. The tuned thresholds and S2 are indistinguishable from it. The probe is the only candidate: BA 0.718, a difference of $+0.030$ with an interval that includes zero, $[-0.012,+0.067]$. S3 uses the benchmark's labels during training and the baseline does not, so this is not a comparison under equal training conditions. It misses fewer refusals (MRR 0.29 versus 0.46) at the price of more false refusals (0.28 versus 0.17). Figure~\ref{fig:cmp} shows the baseline's operating point close to the S1 and S2 trade-off curves and just above the probe's, consistent with limited room for improvement from a global threshold alone; this is a visual observation, not a statistical test.
 
 \begin{table}[t]
 \centering

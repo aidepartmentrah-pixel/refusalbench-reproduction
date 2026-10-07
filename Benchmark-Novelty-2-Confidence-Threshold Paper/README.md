@@ -14,9 +14,9 @@
 2. Menu > Compiler: **pdfLaTeX**. Main document: `main.tex`. Click **Recompile**. (`IEEEtran` is built into Overleaf; no template download.)
 3. Share the project with your doctor with **Share > Add people** (editor access). Red text in the PDF is an open to-do.
 
-## Open to-dos (all marked in red in the PDF or listed here)
+## Open to-dos (listed here; the reminder for the numbers is also a comment at the top of `main.tex`)
 
-1. **Email address** in the title block (name and affiliation are filled in).
+1. ~~Email address~~ done: name, affiliation and email are in the title block. (An earlier Overleaf copy showed the email three times in the text, because the two red to-do markers in the body were replaced by it; this version has no body markers. Replace your Overleaf copy with the new zip.)
 2. **Update the numbers when the baseline is fully graded** (770 of 1,560 replies are graded now). Re-run `Benchmark-Novelty-2-Confidence-Threshold/code/compare_to_baseline.py` and replace the numbers in:
    - the Abstract (balanced accuracy 0.69, 0.72, difference +0.03 [-0.01, +0.07]),
    - Section IV, Table I (baseline) and the sentences under it,
